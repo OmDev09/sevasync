@@ -22,7 +22,7 @@ type ChatMessage = {
   read: boolean;
 };
 
-export default function MessagesPage() {
+export default function VolunteerMessagesPage() {
   const { user, profile } = useAuth();
   const { success, error: toastError } = useToast();
 
@@ -34,29 +34,26 @@ export default function MessagesPage() {
   const [composing, setComposing] = useState('');
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showBroadcast, setShowBroadcast] = useState(false);
-  const [broadcastText, setBroadcastText] = useState('');
-  const [broadcastSending, setBroadcastSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all volunteer profiles to build thread list
+  // Fetch all admin profiles to build the thread list
   const fetchThreads = useCallback(async () => {
     setLoadingThreads(true);
     try {
-      const [volRes, msgRes] = await Promise.all([
-        fetch('/api/volunteers'),
+      const [adminRes, msgRes] = await Promise.all([
+        fetch('/api/admins'),
         fetch('/api/messages'),
       ]);
-      const volData = await volRes.json();
+      const adminData = await adminRes.json();
       const msgData = await msgRes.json();
 
-      const volunteers = volData.volunteers || [];
+      const admins = adminData.admins || [];
       const allMessages = (msgData.messages || []) as ChatMessage[];
 
-      // Build threads from volunteers and latest message per volunteer
-      const threadList: MessageThread[] = volunteers.map((v: { id: string; name: string }) => {
+      // Build threads from admins and latest message per admin
+      const threadList: MessageThread[] = admins.map((a: { id: string; name: string }) => {
         const threadMsgs = allMessages.filter(
-          (m: ChatMessage) => m.from_id === v.id || m.to_id === v.id
+          (m: ChatMessage) => m.from_id === a.id || m.to_id === a.id
         );
         const sorted = threadMsgs.sort(
           (a: ChatMessage, b: ChatMessage) =>
@@ -68,10 +65,10 @@ export default function MessagesPage() {
         ).length;
 
         return {
-          userId: v.id,
-          userName: v.name,
-          initials: v.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2),
-          lastMessage: latest?.text || 'No messages yet',
+          userId: a.id,
+          userName: a.name,
+          initials: a.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2),
+          lastMessage: latest?.text || 'Start conversation',
           lastTime: latest ? getTimeStr(latest.created_at) : '',
           unreadCount: unread,
         };
@@ -86,15 +83,15 @@ export default function MessagesPage() {
 
       setThreads(threadList);
     } catch {
-      // silent fail
+      toastError('Failed to load chats');
     } finally {
       setLoadingThreads(false);
     }
-  }, [user]);
+  }, [user, toastError]);
 
   useEffect(() => { if (user) fetchThreads(); }, [user, fetchThreads]);
 
-  // Load messages for a specific thread
+  // Load messages for a specific admin thread
   const loadMessages = useCallback(async (thread: MessageThread) => {
     setSelectedThread(thread);
     setLoadingMessages(true);
@@ -115,7 +112,7 @@ export default function MessagesPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ids: unreadIds }),
           });
-          // Update thread unread count
+          // Update thread unread count locally
           setThreads(prev =>
             prev.map(t => t.userId === thread.userId ? { ...t, unreadCount: 0 } : t)
           );
@@ -166,28 +163,6 @@ export default function MessagesPage() {
     }
   };
 
-  const sendBroadcast = async () => {
-    if (!broadcastText.trim()) return;
-    setBroadcastSending(true);
-    try {
-      const res = await fetch('/api/messages/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: broadcastText.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Broadcast failed');
-      success('Broadcast sent ✅', `Message sent to ${data.count || 'all'} volunteers.`);
-      setShowBroadcast(false);
-      setBroadcastText('');
-      fetchThreads();
-    } catch (e: unknown) {
-      toastError('Broadcast failed', e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setBroadcastSending(false);
-    }
-  };
-
   const filteredThreads = threads.filter(t =>
     !searchQuery || t.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -197,25 +172,22 @@ export default function MessagesPage() {
       <div className="page-header">
         <div className="page-header-top">
           <div>
-            <h1 className="page-title font-display">💬 Communication Center</h1>
+            <h1 className="page-title font-display">💬 Support Center</h1>
             <p className="page-subtitle">
-              {loadingThreads ? 'Loading...' : `${threads.length} conversations · ${threads.reduce((s, t) => s + t.unreadCount, 0)} unread`}
+              {loadingThreads ? 'Loading...' : `Communicate directly with ${threads.length} Admin(s)`}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="btn btn-secondary btn-sm" onClick={fetchThreads}>🔄 Refresh</button>
-            <button className="btn btn-primary btn-sm" id="messages-broadcast-btn" onClick={() => setShowBroadcast(true)}>📢 Broadcast Alert</button>
-          </div>
+          <button className="btn btn-secondary btn-sm" onClick={fetchThreads}>🔄 Refresh</button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-0" style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        {/* Thread list */}
+        {/* Admin Thread list */}
         <div style={{ borderRight: '1px solid var(--bg-border)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bg-border)' }}>
             <input
               className="form-input"
-              placeholder="🔍 Search conversations..."
+              placeholder="🔍 Search admins..."
               id="messages-search-input"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -223,7 +195,7 @@ export default function MessagesPage() {
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loadingThreads ? (
-              [1,2,3].map(i => (
+              [1, 2, 3].map(i => (
                 <div key={i} style={{ padding: '14px 16px', borderBottom: '1px solid var(--bg-border)', display: 'flex', gap: 12, alignItems: 'center' }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--bg-elevated)' }} />
                   <div style={{ flex: 1 }}>
@@ -234,7 +206,7 @@ export default function MessagesPage() {
               ))
             ) : filteredThreads.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                {threads.length === 0 ? 'No volunteers onboarded yet.' : 'No conversations match your search.'}
+                {threads.length === 0 ? 'No admins active.' : 'No admins match your search.'}
               </div>
             ) : (
               filteredThreads.map(t => (
@@ -286,18 +258,18 @@ export default function MessagesPage() {
                 <div className="avatar avatar-sm" style={{ width: 36, height: 36 }}>{selectedThread.initials}</div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{selectedThread.userName}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Volunteer</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--brand-accent)' }}>Admin Support</div>
                 </div>
               </div>
 
               {/* Messages */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {loadingMessages ? (
-                  <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Loading messages...</div>
+                  <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Loading...</div>
                 ) : messages.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                     <div style={{ fontSize: '2rem', marginBottom: 8 }}>💬</div>
-                    No messages yet. Start the conversation!
+                    Need help or supplies? Message the admin team here.
                   </div>
                 ) : (
                   messages.map(msg => {
@@ -313,7 +285,11 @@ export default function MessagesPage() {
                             border: `1px solid ${isMine ? 'rgba(99,102,241,0.3)' : 'var(--bg-border)'}`,
                           }}
                         >
-                          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{msg.text}</div>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                            {msg.text.startsWith('📢 BROADCAST:') ? (
+                              <span><strong style={{ color: 'var(--brand-warm)' }}>{msg.text.split('📢 BROADCAST:')[1]}</strong></span>
+                            ) : msg.text}
+                          </div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4, textAlign: isMine ? 'right' : 'left' }}>
                             {getTimeStr(msg.created_at)}
                           </div>
@@ -350,48 +326,13 @@ export default function MessagesPage() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <div style={{ fontSize: '3rem', marginBottom: 12 }}>💬</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Select a conversation</div>
-                <div style={{ fontSize: '0.875rem', marginTop: 4 }}>Choose a volunteer from the list to start messaging</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Admin Support</div>
+                <div style={{ fontSize: '0.875rem', marginTop: 4 }}>Select an admin to request resources or provide updates</div>
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Broadcast Modal */}
-      {showBroadcast && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowBroadcast(false); }}
-        >
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 480 }}>
-            <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-              <h2 className="h3 font-display">📢 Broadcast Message</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowBroadcast(false)}>✕</button>
-            </div>
-            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-              ⚠️ This will send a message to <strong>ALL {threads.length} volunteers</strong>.
-            </div>
-            <div className="form-group">
-              <label className="form-label">Broadcast Message *</label>
-              <textarea
-                className="form-input"
-                rows={4}
-                placeholder="e.g. ALERT: All volunteers must report status by 6pm today."
-                value={broadcastText}
-                onChange={e => setBroadcastText(e.target.value)}
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-            <div className="flex gap-3" style={{ marginTop: 12 }}>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={sendBroadcast} disabled={broadcastSending || !broadcastText.trim()}>
-                {broadcastSending ? '⟳ Sending...' : `📢 Send to ${threads.length} Volunteers`}
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowBroadcast(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -45,6 +45,8 @@ This document tracks the comprehensive overhaul of the Admin Dashboard of the Se
 ## 🐛 Bug Fixes & Refinements
 - **Map Deployment Error:** Resolved a Next.js (Turbopack) build error related to a syntax issue within the `LOCATION_COORDS` dictionary in the map component (`] ` changed to `} `).
 - **Client-Side Rendering (CSR):** Encapsulated the `tesseract.js` and `leaflet` initializations inside dynamic `useEffect` to ensure full compatibility with Next.js SSR logic, avoiding hydration errors and deployment failures.
+- **Messaging Sync:** Resolved an issue where admins were not appearing in the Volunteer support list. Added unified `🔄 Refresh` buttons to both Administrative and Volunteer messaging hubs for direct conversation syncing.
+- **Volunteer Messaging RLS:** Fixed an issue where the Row Level Security (RLS) policies successfully blocked volunteers from accessing admin profiles. The `/api/admins` route was refactored to securely bypass RLS via `adminSupabase`, allowing volunteers to view admins and initiate chats directly.
 
 ## 🏁 Current Status
 The **entire Admin Dashboard section is now completely decoupled from mock data arrays**. All features:
@@ -55,3 +57,6 @@ The **entire Admin Dashboard section is now completely decoupled from mock data 
 5. Intra-platform communication
 
 are processing strictly via live Postgres tables backed by Supabase APIs. The platform is ready for robust end-to-end user testing.
+
+## 🤝 Volunteer Experiences Enriched
+- **Volunteer to Admin Messaging:** Added a dedicated `Messages` section to the Volunteer dashboard. Volunteers can now initiate conversations with specific Admin support threads to request resources, provide mission updates, and receive broadcast alerts directly. Created `/api/admins` to facilitate populating the target thread lists dynamically.

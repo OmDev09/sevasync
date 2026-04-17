@@ -42,6 +42,7 @@ const VOLUNTEER_NAV: NavItem[] = [
   { href: '/volunteer', icon: '🏠', label: 'My Dashboard' },
   { href: '/volunteer/tasks', icon: '✅', label: 'My Tasks', badge: 2 },
   { href: '/volunteer/notifications', icon: '🔔', label: 'Notifications', badge: 4 },
+  { href: '/volunteer/messages', icon: '💬', label: 'Messages', badge: 0 },
   { href: '/volunteer/profile', icon: '👤', label: 'My Profile' },
   { href: '/volunteer/history', icon: '📋', label: 'Task History' },
 ];
