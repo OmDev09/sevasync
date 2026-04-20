@@ -69,10 +69,9 @@ export default function Sidebar({ role, userName, userInitials }: SidebarProps) 
     <aside className="sidebar" id="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🤝</div>
+        <img src="/Sevasync_Logo.svg" alt="Sevasync AI" style={{ width: 50, height: 50, borderRadius: 10, objectFit: 'contain' }} />
         <div>
-          <div className="sidebar-logo-text">Sevasync</div>
-          <div className="sidebar-logo-badge">AI</div>
+          <div className="sidebar-logo-text">Sevasync <span style={{ color: 'var(--brand-primary-light)' }}> AI</span></div>
         </div>
       </div>
 

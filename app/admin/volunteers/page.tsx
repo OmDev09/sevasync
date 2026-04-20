@@ -35,6 +35,7 @@ export default function VolunteersPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [form, setForm] = useState({ name: '', email: '', phone: '', location: '', skills: '' });
   const [creating, setCreating] = useState(false);
+  const [createResult, setCreateResult] = useState<{ email?: string; tempPassword?: string; error?: string } | null>(null);
 
   const fetchVolunteers = useCallback(async () => {
     setLoading(true);
@@ -77,13 +78,12 @@ export default function VolunteersPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create volunteer');
-      setShowModal(false);
-      setForm({ name: '', email: '', phone: '', location: '', skills: '' });
       setVolunteers(prev => [data.volunteer, ...prev]);
-      success(
-        'Volunteer Onboarded ✅',
-        `${data.volunteer.name} added. Temp password: ${data.credentials.temporaryPassword}`
-      );
+      setCreateResult({
+        email: data.credentials.email,
+        tempPassword: data.credentials.temporaryPassword
+      });
+      success('Volunteer Onboarded ✅', `${data.volunteer.name} added successfully.`);
     } catch (e: unknown) {
       toastError('Failed to create volunteer', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -103,7 +103,11 @@ export default function VolunteersPage() {
           </div>
           <div className="flex items-center gap-3">
             <button className="btn btn-secondary btn-sm" id="vol-refresh-btn" onClick={fetchVolunteers}>🔄 Refresh</button>
-            <button className="btn btn-primary btn-sm" id="vol-add-btn" onClick={() => setShowModal(true)}>+ Onboard Volunteer</button>
+            <button className="btn btn-primary btn-sm" id="vol-add-btn" onClick={() => {
+              setForm({ name: '', email: '', phone: '', location: '', skills: '' });
+              setCreateResult(null);
+              setShowModal(true);
+            }}>+ Onboard Volunteer</button>
           </div>
         </div>
       </div>
@@ -301,31 +305,46 @@ export default function VolunteersPage() {
               <h2 className="h3 font-display">Onboard Volunteer</h2>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)} id="vol-modal-close-btn">✕</button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { label: 'Full Name *', key: 'name', placeholder: 'e.g. Rahul Gupta', id: 'new-vol-name' },
-                { label: 'Email *', key: 'email', placeholder: 'rahul@email.com', id: 'new-vol-email' },
-                { label: 'Phone', key: 'phone', placeholder: '+91 XXXXX XXXXX', id: 'new-vol-phone' },
-                { label: 'Location', key: 'location', placeholder: 'Area, City', id: 'new-vol-location' },
-                { label: 'Skills (comma separated)', key: 'skills', placeholder: 'e.g. Medical, Transport', id: 'new-vol-skills' },
-              ].map(f => (
-                <div key={f.key} className="form-group">
-                  <label className="form-label">{f.label}</label>
-                  <input className="form-input" id={f.id} placeholder={f.placeholder}
-                    value={(form as Record<string, string>)[f.key]}
-                    onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            {createResult?.tempPassword ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="card" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <h3 style={{ color: 'var(--low)', marginBottom: 8 }}>✅ Volunteer created successfully!</h3>
+                  <div style={{ fontSize: '0.875rem', marginBottom: 16 }}>Please share these temporary credentials with the volunteer. They can update their password in their Profile page after logging in.</div>
+                  <div style={{ background: 'var(--bg-base)', padding: 12, borderRadius: 4, fontFamily: 'monospace' }}>
+                    <div>Email: <span style={{ color: 'var(--text-primary)' }}>{createResult.email}</span></div>
+                    <div>Password: <span style={{ color: 'var(--text-primary)' }}>{createResult.tempPassword}</span></div>
+                  </div>
                 </div>
-              ))}
-              <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                🔑 A temporary password will be auto-generated and sent to the volunteer&apos;s email.
+                <button className="btn btn-primary" onClick={() => setShowModal(false)}>Done</button>
               </div>
-              <div className="flex gap-3" style={{ marginTop: 8 }}>
-                <button className="btn btn-primary" id="vol-create-btn" onClick={handleCreate} disabled={creating} style={{ flex: 1 }}>
-                  {creating ? '⟳ Creating...' : 'Create Account'}
-                </button>
-                <button className="btn btn-secondary" onClick={() => setShowModal(false)} id="vol-cancel-btn">Cancel</button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {createResult?.error && <div className="text-sm text-critical mb-2">{createResult.error}</div>}
+                {[
+                  { label: 'Full Name *', key: 'name', placeholder: 'e.g. Rahul Gupta', id: 'new-vol-name' },
+                  { label: 'Email *', key: 'email', placeholder: 'rahul@email.com', id: 'new-vol-email' },
+                  { label: 'Phone', key: 'phone', placeholder: '+91 XXXXX XXXXX', id: 'new-vol-phone' },
+                  { label: 'Location', key: 'location', placeholder: 'Area, City', id: 'new-vol-location' },
+                  { label: 'Skills (comma separated)', key: 'skills', placeholder: 'e.g. Medical, Transport', id: 'new-vol-skills' },
+                ].map(f => (
+                  <div key={f.key} className="form-group">
+                    <label className="form-label">{f.label}</label>
+                    <input className="form-input" id={f.id} placeholder={f.placeholder} disabled={creating}
+                      value={(form as Record<string, string>)[f.key]}
+                      onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+                  </div>
+                ))}
+                <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  🔑 A temporary password will be auto-generated and displayed on the next screen.
+                </div>
+                <div className="flex gap-3" style={{ marginTop: 8 }}>
+                  <button className="btn btn-primary" id="vol-create-btn" onClick={handleCreate} disabled={creating} style={{ flex: 1 }}>
+                    {creating ? '⟳ Creating...' : 'Create Account'}
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={creating} id="vol-cancel-btn">Cancel</button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

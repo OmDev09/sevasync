@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { createClient } from '@/lib/supabase/client';
+import { useTheme } from '../../context/ThemeContext';
 
 type ProfileData = {
   name: string;
@@ -27,6 +29,10 @@ export default function VolunteerProfilePage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [formFields, setFormFields] = useState({ name: '', email: '', phone: '', region: '' });
+  
+  const { theme, toggleTheme } = useTheme();
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPwd, setUpdatingPwd] = useState(false);
 
   // Load profile data
   const loadProfile = useCallback(async () => {
@@ -75,6 +81,26 @@ export default function VolunteerProfilePage() {
       toastError('Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toastError('Invalid Password', 'Password must be at least 6 characters.');
+      return;
+    }
+    setUpdatingPwd(true);
+    try {
+      const supabase = createClient();
+      const { error: pwdErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (pwdErr) throw new Error(pwdErr.message);
+      
+      success('Security Updated', 'Your password has been changed successfully.');
+      setNewPassword('');
+    } catch (e: any) {
+      toastError('Update Failed', e.message);
+    } finally {
+      setUpdatingPwd(false);
     }
   };
 
@@ -209,6 +235,37 @@ export default function VolunteerProfilePage() {
                 <div>🆔 Role: Volunteer</div>
                 <div>📊 Status: {data.status}</div>
               </div>
+            </div>
+
+            <div className="card">
+              <h3 className="h4" style={{ marginBottom: 12 }}>Appearance & UI Settings</h3>
+              <div className="flex items-center justify-between" style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--bg-border)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 2 }}>Visual Theme</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Switch between Light and Dark interface templates.</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: '0.8125rem', color: theme === 'light-theme' ? 'var(--text-primary)' : 'var(--text-muted)' }}>☀️ Light</span>
+                  <div onClick={toggleTheme} style={{ width: 44, height: 24, borderRadius: 'var(--radius-full)', background: theme !== 'light-theme' ? 'var(--brand-primary)' : 'var(--bg-border)', cursor: 'pointer', position: 'relative', transition: 'background var(--transition-fast)' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: theme !== 'light-theme' ? 22 : 4, transition: 'left var(--transition-fast)' }} />
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: theme !== 'light-theme' ? 'var(--text-primary)' : 'var(--text-muted)' }}>🌙 Dark</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 className="h4" style={{ marginBottom: 14 }}>Security</h3>
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label className="form-label">New Password</label>
+                <div className="flex gap-2">
+                  <input className="form-input" style={{ flex: 1 }} type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} disabled={updatingPwd} />
+                  <button className="btn btn-secondary" onClick={handleUpdatePassword} disabled={updatingPwd || !newPassword}>
+                    {updatingPwd ? 'Updating...' : 'Update'}
+                  </button>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>We recommend setting a secure password if you are logging in with temporary credentials.</div>
             </div>
           </div>
         </div>

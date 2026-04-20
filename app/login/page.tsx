@@ -43,6 +43,20 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <Link href="/" className="btn btn-ghost" style={{
+        position: 'absolute',
+        top: 24,
+        left: 24,
+        zIndex: 20,
+        background: 'var(--glass-bg)',
+        padding: '8px 16px',
+        borderRadius: 'var(--radius-full)',
+        border: '1px solid var(--glass-border)',
+        backdropFilter: 'blur(12px)',
+      }}>
+        ← Back
+      </Link>
+
       {/* Background */}
       <div style={{
         position: 'absolute', inset: 0,
@@ -67,15 +81,9 @@ export default function LoginPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             <div>
               <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-                <div style={{
-                  width: 44, height: 44,
-                  background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%)',
-                  borderRadius: 12,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.5rem',
-                }}>🤝</div>
+                <img src="/Sevasync_Logo.svg" alt="Sevasync Logo" style={{ width: 55, height: 55, borderRadius: 12, objectFit: 'contain' }} />
                 <span className="font-display font-bold" style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>
-                  Sevasync<span style={{ color: 'var(--brand-primary-light)' }}> AI</span>
+                  Sevasync <span style={{ color: 'var(--brand-primary-light)' }}> AI</span>
                 </span>
               </Link>
 

@@ -3,24 +3,19 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function SAProfilePage() {
   const { profile, logout } = useAuth();
   const { success } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [themeMode, setThemeMode] = useState('dark');
 
   if (!profile) return null;
 
   const handleLogout = async () => {
     setLoading(true);
     await logout();
-  };
-
-  const handleThemeToggle = () => {
-    const newTheme = themeMode === 'dark' ? 'light' : 'dark';
-    setThemeMode(newTheme);
-    success('Theme Updated', `Switched to ${newTheme} mode (Preview only; UI hardcoded to dark for hackathon).`);
   };
 
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
@@ -111,14 +106,14 @@ export default function SAProfilePage() {
               </div>
               
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: '0.8125rem', color: themeMode === 'light' ? 'var(--text-primary)' : 'var(--text-muted)' }}>☀️ Light</span>
+                <span style={{ fontSize: '0.8125rem', color: theme === 'light-theme' ? 'var(--text-primary)' : 'var(--text-muted)' }}>☀️ Light</span>
                 <div 
-                  onClick={handleToggleClick}
-                  style={{ width: 44, height: 24, borderRadius: 'var(--radius-full)', background: themeMode === 'dark' ? 'var(--brand-primary)' : 'var(--bg-border)', cursor: 'pointer', position: 'relative', transition: 'background var(--transition-fast)' }}
+                  onClick={toggleTheme}
+                  style={{ width: 44, height: 24, borderRadius: 'var(--radius-full)', background: theme !== 'light-theme' ? 'var(--brand-primary)' : 'var(--bg-border)', cursor: 'pointer', position: 'relative', transition: 'background var(--transition-fast)' }}
                 >
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: themeMode === 'dark' ? 22 : 4, transition: 'left var(--transition-fast)' }} />
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: theme !== 'light-theme' ? 22 : 4, transition: 'left var(--transition-fast)' }} />
                 </div>
-                <span style={{ fontSize: '0.8125rem', color: themeMode === 'dark' ? 'var(--text-primary)' : 'var(--text-muted)' }}>🌙 Dark</span>
+                <span style={{ fontSize: '0.8125rem', color: theme !== 'light-theme' ? 'var(--text-primary)' : 'var(--text-muted)' }}>🌙 Dark</span>
               </div>
             </div>
           </div>
@@ -127,8 +122,4 @@ export default function SAProfilePage() {
       </div>
     </div>
   );
-  
-  function handleToggleClick() {
-    handleThemeToggle();
-  }
 }
