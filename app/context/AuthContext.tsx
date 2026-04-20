@@ -39,32 +39,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        const p = await fetchProfile(user.id);
-        setProfile(p);
-      }
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Listen to auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    async function loadInitialSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
+        if (mounted) setUser(currentUser);
+        
         if (currentUser) {
           const p = await fetchProfile(currentUser.id);
-          setProfile(p);
+          if (mounted) setProfile(p);
         } else {
-          setProfile(null);
+          if (mounted) setProfile(null);
         }
-        setLoading(false);
+      } catch (err) {
+        console.error('Session init error:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: any, session: any) => {
+        if (event === 'INITIAL_SESSION') return;
+        try {
+          const currentUser = session?.user ?? null;
+          if (mounted) setUser(currentUser);
+          
+          if (currentUser) {
+            const p = await fetchProfile(currentUser.id);
+            if (mounted) setProfile(p);
+          } else {
+            if (mounted) setProfile(null);
+          }
+        } catch (err) {
+          console.error('Auth state change error:', err);
+        } finally {
+          if (mounted) setLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [supabase, fetchProfile]);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -76,12 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: error.message };
     }
 
-    // Profile will be set by onAuthStateChange
-    // Get role for redirect
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (currentUser) {
+      setUser(currentUser);
       const p = await fetchProfile(currentUser.id);
       if (p) {
+        setProfile(p);
         router.push(ROLE_HOME[p.role] ?? '/');
       }
     }
@@ -91,7 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, router, fetchProfile]);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.warn('SignOut error ignored:', err);
+    }
     setUser(null);
     setProfile(null);
     router.push('/login');

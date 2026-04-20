@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
   const availableVols = volunteers.filter(v => v.status === 'active');
 
-  const topNeeds = [...needs].sort((a, b) => b.ai_score - a.ai_score).slice(0, 5);
+  const topNeeds = [...openNeeds].sort((a, b) => b.ai_score - a.ai_score).slice(0, 5);
   const recentTasks = [...tasks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 4);
 
   return (

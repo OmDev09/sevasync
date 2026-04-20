@@ -44,7 +44,7 @@ export default function VolunteerNotificationsPage() {
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
+      }, (payload: any) => {
         const newNotif = payload.new as Notification;
         setNotifications(prev => [newNotif, ...prev]);
       })

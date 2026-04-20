@@ -18,7 +18,7 @@ type ProfileData = {
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export default function VolunteerProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { success, error: toastError } = useToast();
 
   const [editing, setEditing] = useState(false);
@@ -88,11 +88,16 @@ export default function VolunteerProfilePage() {
             <h1 className="page-title font-display">My Profile</h1>
             <p className="page-subtitle">Manage your personal information and availability</p>
           </div>
-          <button className="btn btn-primary btn-sm" id="vol-profile-edit-btn"
-            onClick={() => editing ? handleSave() : setEditing(true)}
-            disabled={saving}>
-            {saving ? '⟳ Saving...' : editing ? '✓ Save Profile' : '✏️ Edit Profile'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button className="btn btn-danger btn-sm" id="vol-profile-logout-btn" onClick={() => logout()} disabled={saving}>
+              Log Out ➔
+            </button>
+            <button className="btn btn-primary btn-sm" id="vol-profile-edit-btn"
+              onClick={() => editing ? handleSave() : setEditing(true)}
+              disabled={saving}>
+              {saving ? '⟳ Saving...' : editing ? '✓ Save Profile' : '✏️ Edit Profile'}
+            </button>
+          </div>
         </div>
       </div>
 

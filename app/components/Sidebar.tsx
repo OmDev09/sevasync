@@ -23,7 +23,8 @@ const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/analytics', icon: '📈', label: 'Global Analytics' },
   { href: '/super-admin/map', icon: '🗺️', label: 'Global Map' },
   { href: '/super-admin/activity', icon: '📋', label: 'Activity Log' },
-  { href: '/super-admin/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/super-admin/settings', icon: '⚙️', label: 'System Config' },
+  { href: '/super-admin/profile', icon: '👤', label: 'General / Profile' },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -36,6 +37,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/admin/map', icon: '🗺️', label: 'Regional Map' },
   { href: '/admin/reports', icon: '📈', label: 'Reports' },
   { href: '/admin/messages', icon: '💬', label: 'Messages', badge: 2 },
+  { href: '/admin/profile', icon: '👤', label: 'My Profile' },
 ];
 
 const VOLUNTEER_NAV: NavItem[] = [
@@ -55,7 +57,7 @@ const ROLE_CONFIG = {
 
 export default function Sidebar({ role, userName, userInitials }: SidebarProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { } = useAuth();
   const config = ROLE_CONFIG[role];
 
   const isActive = (href: string) => {
@@ -113,13 +115,12 @@ export default function Sidebar({ role, userName, userInitials }: SidebarProps) 
 
       {/* Footer / User */}
       <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={logout} title="Click to logout">
+        <div className="sidebar-user" title="User Profile">
           <div className="sidebar-avatar">{userInitials}</div>
           <div className="sidebar-user-info">
             <div className="sidebar-user-name">{userName}</div>
-            <div className="sidebar-user-role">Sign out</div>
+            <div className="sidebar-user-role" style={{ textTransform: 'capitalize' }}>{role.replace('-', ' ')}</div>
           </div>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>→</span>
         </div>
       </div>
     </aside>

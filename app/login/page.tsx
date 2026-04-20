@@ -161,6 +161,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -184,6 +185,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
+                  suppressHydrationWarning
                 />
               </div>
 
