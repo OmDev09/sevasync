@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Need } from '../../../lib/supabase/database.types';
 
 const TYPE_COLORS: Record<string, string> = {
-  Medical: '#ef4444', Food: '#f97316', Shelter: '#6366f1',
-  Water: '#06b6d4', Education: '#10b981',
+  Medical: '#ef4444', Food: '#F49C27', Shelter: '#129A9C',
+  Water: '#0284c7', Education: '#7EB64F',
 };
 
 // Coordinate lookup for known Mumbai/India locations
@@ -151,56 +151,61 @@ export default function AdminMapPage() {
         const coords = getCoords(need.location);
         if (!coords) continue;
 
-        const color = TYPE_COLORS[need.type] || '#6366f1';
-        const radius = need.severity === 'critical' ? 18 : need.severity === 'high' ? 14 : need.severity === 'medium' ? 10 : 8;
+        const color = TYPE_COLORS[need.type] || '#129A9C';
+        const isCritical = need.severity === 'critical';
+        
+        // Use custom HTML markers instead of basic SVG circles
+        const size = isCritical ? 24 : need.severity === 'high' ? 18 : 14;
+        
+        const iconHtml = `
+          <div style="
+            width: ${size}px; 
+            height: ${size}px; 
+            background: ${color}; 
+            border-radius: 50%; 
+            border: 2px solid var(--bg-surface);
+            --glow-color: ${color};
+            ${isCritical ? 'animation: glowPulse 1.5s ease-in-out infinite alternate;' : `box-shadow: 0 0 10px ${color};`}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          ">
+          </div>
+        `;
 
-        // Create circle marker
-        const circle = L.circleMarker(coords, {
-          radius,
-          fillColor: color,
-          color: 'rgba(255,255,255,0.4)',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: need.severity === 'critical' ? 0.9 : 0.75,
+        const divIcon = L.divIcon({
+          html: iconHtml,
+          className: 'sevasync-custom-marker',
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2],
+          popupAnchor: [0, -size/2]
         });
+
+        const marker = L.marker(coords, { icon: divIcon });
 
         // Popup content
         const popupHtml = `
           <div style="font-family:system-ui,sans-serif;min-width:200px;padding:4px">
-            <div style="font-weight:700;font-size:14px;margin-bottom:4px">${need.title}</div>
-            <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">📍 ${need.location}</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--text-primary)">${need.title}</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">📍 ${need.location}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <span style="background:${color}20;color:${color};border:1px solid ${color}40;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${need.type}</span>
-              <span style="background:rgba(239,68,68,0.15);color:#ef4444;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;text-transform:uppercase">${need.severity}</span>
+              <span style="background:${color}30;color:${color};border:1px solid ${color}60;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${need.type}</span>
+              <span style="background:${isCritical ? 'rgba(239,68,68,0.2)' : 'var(--bg-elevated)'};color:${isCritical ? '#ef4444' : 'var(--text-secondary)'};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase">${need.severity}</span>
             </div>
-            <div style="font-size:12px;color:#cbd5e1">👥 ${need.people_affected} people · 🧠 Score: ${need.ai_score}</div>
-            ${need.description ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px">${need.description.slice(0, 100)}${need.description.length > 100 ? '...' : ''}</div>` : ''}
+            <div style="font-size:12px;color:var(--text-primary);font-weight:600">👥 ${need.people_affected} people · 🧠 Score: ${need.ai_score}</div>
+            ${need.description ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;border-top:1px solid var(--bg-border);padding-top:8px;line-height:1.5">${need.description.slice(0, 100)}${need.description.length > 100 ? '...' : ''}</div>` : ''}
           </div>
         `;
 
-        circle.bindPopup(popupHtml, {
+        marker.bindPopup(popupHtml, {
           maxWidth: 280,
           className: 'sevasync-popup',
         });
 
-        circle.on('click', () => setSelected(need));
-        circle.addTo(leafletMapRef.current);
-        markersRef.current.push(circle);
-
-        // Pulsing ring for critical
-        if (need.severity === 'critical') {
-          const pulse = L.circleMarker(coords, {
-            radius: radius + 8,
-            fillColor: 'transparent',
-            color: color,
-            weight: 2,
-            opacity: 0.4,
-            fillOpacity: 0,
-            className: 'leaflet-pulse-ring',
-          });
-          pulse.addTo(leafletMapRef.current);
-          markersRef.current.push(pulse);
-        }
+        marker.on('click', () => setSelected(need));
+        marker.addTo(leafletMapRef.current);
+        markersRef.current.push(marker);
       }
     };
 

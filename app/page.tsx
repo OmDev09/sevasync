@@ -16,13 +16,13 @@ const features = [
     icon: '🧠',
     color: 'rgba(18,154,156,0.15)',
     title: 'AI Need Prioritization',
-    desc: 'Automatically score and rank incoming needs across all data sources with our weighted AI engine — surfacing the most critical situations instantly.',
+    desc: 'Automatically score and rank incoming needs across all data sources with our weighted AI engine surfacing the most critical situations instantly.',
   },
   {
     icon: '📡',
     color: 'rgba(244,156,39,0.15)',
     title: 'Multi-Source Intake',
-    desc: 'Unify paper forms (OCR), WhatsApp/SMS, mobile entries, and CSV uploads into one structured pipeline — no data left behind.',
+    desc: 'Unify paper forms (OCR), WhatsApp/SMS, mobile entries, and CSV uploads into one structured pipeline no data left behind.',
   },
   {
     icon: '🗺️',
@@ -46,7 +46,7 @@ const features = [
     icon: '🔐',
     color: 'rgba(239,68,68,0.15)',
     title: '3-Tier Role System',
-    desc: 'Super Admin → Admin → Volunteer hierarchy with controlled onboarding. Admins create volunteers; no unauthorized access, ever.',
+    desc: 'Super Admin → Admin → Volunteer hierarchy with controlled onboarding. Admins create volunteers; no unauthorized access, ever!',
   },
 ];
 
@@ -288,36 +288,49 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="features" style={{ padding: '96px 0' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <div className="badge badge-cyan" style={{ display: 'inline-flex', marginBottom: 14, padding: '6px 16px' }}>
+      <section id="features" style={{ padding: '120px 0', position: 'relative' }}>
+        <div style={{
+          position: 'absolute', width: '60vw', height: '60vw', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(18,154,156,0.05) 0%, transparent 60%)',
+          top: '10%', right: '-30%', pointerEvents: 'none'
+        }} />
+        <div className="container" style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ textAlign: 'center', marginBottom: 72 }}>
+            <div className="badge badge-cyan" style={{ display: 'inline-flex', marginBottom: 16, padding: '6px 16px' }}>
               Platform Features
             </div>
             <h2
               className="font-display"
-              style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}
+              style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 16, letterSpacing: '-0.02em' }}
             >
               Everything you need to coordinate
             </h2>
-            <p style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', fontSize: '1rem' }}>
-              From data collection to delivery <b>Sevasync AI</b> handles the entire volunteer coordination lifecycle.
+            <p style={{ color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto', fontSize: '1.0625rem', lineHeight: 1.6 }}>
+              From data collection to delivery — <b>Sevasync AI</b> handles the entire volunteer coordination lifecycle natively.
             </p>
           </div>
 
-          <div
-            className="grid stagger"
-            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}
-          >
-            {features.map((f) => (
-              <div key={f.title} className="feature-card animate-fade-in">
-                <div className="feature-icon" style={{ background: f.color }}>
-                  {f.icon}
+          <div className="features-bento stagger">
+            {features.map((f, i) => (
+              <div 
+                key={f.title} 
+                className={`feature-card glass-card animate-fade-in bento-${i}`} 
+                style={{ 
+                  animationDelay: `${i * 0.1}s`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+              >
+                <div className="flex items-start gap-4 mb-2">
+                  <div className="feature-icon" style={{ background: f.color, boxShadow: `0 4px 12px ${f.color.replace('0.15', '0.4')}`, flexShrink: 0 }}>
+                    {f.icon}
+                  </div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 8 }}>
+                    {f.title}
+                  </h3>
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-                  {f.title}
-                </h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', lineHeight: 1.65, marginTop: 4 }}>
                   {f.desc}
                 </p>
               </div>
@@ -327,60 +340,69 @@ export default function LandingPage() {
       </section>
 
       {/* ROLES */}
-      <section id="roles" style={{ padding: '96px 0', background: 'var(--bg-surface)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <div className="badge badge-brand" style={{ display: 'inline-flex', marginBottom: 14, padding: '6px 16px' }}>
+      <section id="roles" style={{ padding: '120px 0', background: 'var(--bg-surface)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', width: '50vw', height: '50vw', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(244,156,39,0.06) 0%, transparent 60%)',
+          bottom: '-20%', left: '-20%', pointerEvents: 'none'
+        }} />
+        <div className="container" style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ textAlign: 'center', marginBottom: 72 }}>
+            <div className="badge badge-brand" style={{ display: 'inline-flex', marginBottom: 16, padding: '6px 16px' }}>
               Role-Based Access
             </div>
             <h2
               className="font-display"
-              style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}
+              style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 16, letterSpacing: '-0.02em' }}
             >
               Built for every stakeholder
             </h2>
-            <p style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto' }}>
-              Three distinct dashboards tailored to each role — no clutter, just the right tools.
+            <p style={{ color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto', fontSize: '1.0625rem' }}>
+              Three distinct interconnected dashboards tailored to each role no clutter, just the right tools exactly when needed.
             </p>
           </div>
 
           <div
             className="grid"
-            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32 }}
           >
-            {roles.map((r) => (
+            {roles.map((r, i) => (
               <div
                 key={r.role}
+                className="glass-card animate-fade-in"
                 style={{
                   background: r.bg,
                   border: `1px solid ${r.border}`,
+                  padding: '36px 28px',
                   borderRadius: 'var(--radius-xl)',
-                  padding: '28px 24px',
-                  transition: 'transform var(--transition-base), box-shadow var(--transition-base)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  animationDelay: `${i * 0.15}s`
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-md)';
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-8px) scale(1.02)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-lg)';
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLDivElement).style.transform = '';
                   (e.currentTarget as HTMLDivElement).style.boxShadow = '';
                 }}
               >
-                <div style={{ fontSize: '2rem', marginBottom: 12 }}>{r.icon}</div>
+                <div style={{ width: 64, height: 64, fontSize: '2.5rem', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', borderRadius: '16px' }}>{r.icon}</div>
                 <h3
                   className="font-display"
-                  style={{ fontSize: '1.125rem', fontWeight: 700, color: r.color, marginBottom: 14 }}
+                  style={{ fontSize: '1.25rem', fontWeight: 800, color: r.color, marginBottom: 16 }}
                 >
                   {r.role}
                 </h3>
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {r.points.map((p) => (
                     <li
                       key={p}
-                      style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.875rem', color: 'var(--text-secondary)' }}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.9375rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}
                     >
-                      <span style={{ color: r.color, marginTop: 1 }}>✓</span>
+                      <span style={{ color: r.color, marginTop: 2, fontWeight: 700 }}>✓</span>
                       {p}
                     </li>
                   ))}
@@ -392,24 +414,29 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '96px 0', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: '120px 0', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse 60% 80% at 50% 50%, rgba(18,154,156,0.08) 0%, transparent 70%)',
+          background: 'linear-gradient(135deg, rgba(18,154,156,0.08) 0%, rgba(244,156,39,0.08) 100%)',
         }} />
-        <div className="container" style={{ textAlign: 'center', position: 'relative' }}>
-          <h2
-            className="font-display gradient-text"
-            style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 16 }}
-          >
-            Ready to coordinate impact?
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 36, maxWidth: 440, margin: '0 auto 36px' }}>
-            Join hundreds of NGOs already using Sevasync AI to deliver faster, smarter community relief.
-          </p>
-          <Link href="/login" className="btn btn-primary btn-lg" id="cta-login-btn">
-            Start Now →
-          </Link>
+        <div className="container" style={{ position: 'relative', zIndex: 10 }}>
+          <div className="glass-card animate-fade-in" style={{ padding: '64px 32px', textAlign: 'center', borderRadius: 'var(--radius-xl)', border: '1px solid var(--bg-border)', boxShadow: 'var(--shadow-xl)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'radial-gradient(circle, var(--brand-accent) 0%, transparent 60%)', opacity: 0.15, top: '-100px', left: '-100px', borderRadius: '50%' }} />
+            <div style={{ position: 'absolute', width: '300px', height: '300px', background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 60%)', opacity: 0.15, bottom: '-100px', right: '-100px', borderRadius: '50%' }} />
+            
+            <h2
+              className="font-display gradient-text"
+              style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, marginBottom: 20, letterSpacing: '-0.02em', position: 'relative' }}
+            >
+              Ready to coordinate impact?
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px', fontSize: '1.125rem', lineHeight: 1.6, position: 'relative' }}>
+              Join hundreds of high-impact action networks already using Sevasync AI to deliver faster, smarter community relief.
+            </p>
+            <Link href="/login" className="btn btn-primary btn-lg" id="cta-login-btn" style={{ fontSize: '1.125rem', padding: '16px 40px', position: 'relative' }}>
+              Launch Platform →
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -1179,3 +1179,33 @@ h5, .h5 { font-size: 1rem; font-weight: 600; }
 }
 
 @keyframes progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* Features Bento Grid */
+.features-bento {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .features-bento {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .features-bento {
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .bento-0 { grid-column: span 8; }
+  .bento-1 { grid-column: span 4; }
+  .bento-2 { grid-column: span 4; }
+  .bento-3 { grid-column: span 8; }
+  .bento-4 { grid-column: span 6; }
+  .bento-5 { grid-column: span 6; }
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 8px var(--glow-color), 0 0 15px var(--glow-color); }
+  100% { box-shadow: 0 0 16px var(--glow-color), 0 0 35px var(--glow-color); }
+}

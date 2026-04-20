@@ -74,37 +74,41 @@ export default function LoginPage() {
         backgroundSize: '60px 60px',
       }} />
 
-      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 48, alignItems: 'center' }}>
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 64, alignItems: 'center' }}>
 
           {/* Left side — branding */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 36, position: 'relative' }}>
+            
+            <div style={{ position: 'absolute', width: 400, height: 400, background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 60%)', opacity: 0.08, top: -80, left: -80, borderRadius: '50%', pointerEvents: 'none' }} />
+
             <div>
-              <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+              <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 14, marginBottom: 32, position: 'relative', zIndex: 2 }}>
                 <img src="/Sevasync_Logo.svg" alt="Sevasync Logo" style={{ width: 55, height: 55, borderRadius: 12, objectFit: 'contain' }} />
-                <span className="font-display font-bold" style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+                <span className="font-display font-bold" style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>
                   Sevasync <span style={{ color: 'var(--brand-primary-light)' }}> AI</span>
                 </span>
               </Link>
 
               <h1
-                className="font-display"
-                style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 16 }}
+                className="font-display gradient-text"
+                style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontWeight: 900, lineHeight: 1.1, marginBottom: 20, letterSpacing: '-0.02em' }}
               >
-                Coordinate volunteers.<br />
-                <span className="gradient-text">Amplify impact.</span>
+                Access the<br />Coordination Grid
               </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7, maxWidth: 440 }}>
-                Sign in to access your personalized dashboard and start making a difference in your community.
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.0625rem', lineHeight: 1.7, maxWidth: 460 }}>
+                Authenticate into the primary Sevasync dispatch node to monitor live data and coordinate volunteer operations seamlessly.
               </p>
             </div>
 
+
+
             {/* Demo credentials */}
-            <div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Demo Accounts
+            <div style={{ marginTop: 12, position: 'relative', zIndex: 2 }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Quick Launch Nodes (Demo)
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {DEMO_USERS.map((u) => {
                   const meta = ROLE_LABELS[u.role];
                   return (
@@ -112,33 +116,32 @@ export default function LoginPage() {
                       key={u.role}
                       id={`demo-${u.role}-btn`}
                       onClick={() => fillDemo(u)}
+                      className="glass-card"
                       style={{
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--bg-border)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '12px 16px',
+                        padding: '14px 20px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
+                        gap: 16,
                         cursor: 'pointer',
-                        transition: 'border-color var(--transition-fast), background var(--transition-fast)',
+                        transition: 'all var(--transition-base)',
                         textAlign: 'left',
+                        boxShadow: 'none'
                       }}
                       onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--bg-border-hover)';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)';
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'translateX(4px)';
+                        (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-card-hover)';
                       }}
                       onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--bg-border)';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-card)';
+                        (e.currentTarget as HTMLButtonElement).style.transform = '';
+                        (e.currentTarget as HTMLButtonElement).style.background = '';
                       }}
                     >
-                      <span style={{ fontSize: '1.25rem' }}>{meta.icon}</span>
+                      <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', borderRadius: '10px', fontSize: '1.25rem' }}>{meta.icon}</div>
                       <div>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: meta.color }}>{meta.label}</div>
+                        <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: meta.color, marginBottom: 2 }}>{meta.label}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.email}</div>
                       </div>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click to fill →</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-fill →</span>
                     </button>
                   );
                 })}
@@ -147,13 +150,16 @@ export default function LoginPage() {
           </div>
 
           {/* Right — Login Card */}
-          <div className="login-card">
-            <div style={{ marginBottom: 28 }}>
-              <h2 className="font-display" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-                Welcome back
+          <div className="login-card glass-card animate-fade-in" style={{ padding: '48px 40px', position: 'relative', boxShadow: 'var(--shadow-xl)', border: 'none', animationDelay: '0.2s' }}>
+            {/* Glowing Gradient Border overlay */}
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', padding: 1, background: 'linear-gradient(135deg, rgba(18,154,156,0.5) 0%, rgba(244,156,39,0.5) 100%)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', pointerEvents: 'none' }} />
+
+            <div style={{ marginBottom: 32, position: 'relative', zIndex: 2 }}>
+              <h2 className="font-display" style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+                Login Securely 
               </h2>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Sign in to your Sevasync AI account
+              <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+                Authenticate below to access the interface.
               </p>
             </div>
 
@@ -230,9 +236,10 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div style={{ marginTop: 24, padding: '16px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                🔒 Role-based access · Volunteers are onboarded by Admins
+            <div style={{ marginTop: 28, padding: '16px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--bg-border)', position: 'relative', zIndex: 2 }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                🔒 <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>End-to-end encrypted link.</span><br/>
+                Volunteer nodes must be provisioned by an Administrator.
               </p>
             </div>
           </div>

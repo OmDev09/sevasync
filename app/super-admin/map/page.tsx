@@ -5,12 +5,12 @@ import { useEffect, useRef } from 'react';
 const REGIONS_DATA = [
   { coords: [19.0760, 72.8777] as [number, number], color: '#ef4444', label: 'Mumbai North', score: 94, admin: 'Priya Sharma', size: 16, level: 'critical', vols: 42, tasks: 18 },
   { coords: [28.7041, 77.1025] as [number, number], color: '#ef4444', label: 'Delhi NCR', score: 88, admin: 'Rohit Joshi', size: 14, level: 'critical', vols: 67, tasks: 31 },
-  { coords: [17.3850, 78.4867] as [number, number], color: '#f97316', label: 'Hyderabad East', score: 72, admin: 'Vikram Nair', size: 12, level: 'high', vols: 31, tasks: 15 },
-  { coords: [13.0827, 80.2707] as [number, number], color: '#f97316', label: 'Chennai South', score: 68, admin: 'Kavya Reddy', size: 12, level: 'high', vols: 28, tasks: 24 },
-  { coords: [18.5204, 73.8567] as [number, number], color: '#f97316', label: 'Pune West', score: 62, admin: 'Sneha Kulkarni', size: 10, level: 'high', vols: 19, tasks: 8 },
-  { coords: [12.9716, 77.5946] as [number, number], color: '#eab308', label: 'Bangalore Central', score: 55, admin: 'Arjun Menon', size: 10, level: 'medium', vols: 35, tasks: 12 },
-  { coords: [22.5726, 88.3639] as [number, number], color: '#22c55e', label: 'Kolkata East', score: 35, admin: 'Rahul Das', size: 8, level: 'low', vols: 14, tasks: 4 },
-  { coords: [23.0225, 72.5714] as [number, number], color: '#eab308', label: 'Ahmedabad', score: 48, admin: 'Amit Patel', size: 10, level: 'medium', vols: 21, tasks: 9 },
+  { coords: [17.3850, 78.4867] as [number, number], color: '#F49C27', label: 'Hyderabad East', score: 72, admin: 'Vikram Nair', size: 12, level: 'high', vols: 31, tasks: 15 },
+  { coords: [13.0827, 80.2707] as [number, number], color: '#F49C27', label: 'Chennai South', score: 68, admin: 'Kavya Reddy', size: 12, level: 'high', vols: 28, tasks: 24 },
+  { coords: [18.5204, 73.8567] as [number, number], color: '#F49C27', label: 'Pune West', score: 62, admin: 'Sneha Kulkarni', size: 10, level: 'high', vols: 19, tasks: 8 },
+  { coords: [12.9716, 77.5946] as [number, number], color: '#129A9C', label: 'Bangalore Central', score: 55, admin: 'Arjun Menon', size: 10, level: 'medium', vols: 35, tasks: 12 },
+  { coords: [22.5726, 88.3639] as [number, number], color: '#7EB64F', label: 'Kolkata East', score: 35, admin: 'Rahul Das', size: 8, level: 'low', vols: 14, tasks: 4 },
+  { coords: [23.0225, 72.5714] as [number, number], color: '#129A9C', label: 'Ahmedabad', score: 48, admin: 'Amit Patel', size: 10, level: 'medium', vols: 21, tasks: 9 },
 ];
 
 export default function SAMapPage() {
@@ -53,46 +53,54 @@ export default function SAMapPage() {
       }).addTo(map);
 
       REGIONS_DATA.forEach(region => {
-        const circle = L.circleMarker(region.coords, {
-          radius: region.size,
-          fillColor: region.color,
-          color: 'rgba(255,255,255,0.4)',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: region.level === 'critical' ? 0.9 : 0.75,
-        });
+        const isCritical = region.level === 'critical';
+        const sizeMultiplier = isCritical ? 36 : region.level === 'high' ? 28 : region.level === 'medium' ? 22 : 18;
 
-        const popupHtml = `
-          <div style="font-family:system-ui,sans-serif;min-width:200px;padding:4px">
-            <div style="font-weight:700;font-size:14px;margin-bottom:4px">${region.label}</div>
-            <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">🧑‍💻 Admin: ${region.admin}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <span style="background:${region.color}20;color:${region.color};border:1px solid ${region.color}40;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;text-transform:uppercase">${region.level}</span>
-            </div>
-            <div style="font-size:12px;color:#cbd5e1">🙋 ${region.vols} volunteers · ✅ ${region.tasks} active tasks</div>
-            <div style="font-size:12px;color:#cbd5e1;margin-top:2px">🧠 AI Severity Score: ${region.score}</div>
+        const iconHtml = `
+          <div style="
+            width: ${sizeMultiplier}px; 
+            height: ${sizeMultiplier}px; 
+            background: ${region.color}; 
+            border-radius: 50%; 
+            border: 2px solid var(--bg-surface);
+            --glow-color: ${region.color};
+            ${isCritical ? 'animation: glowPulse 1.5s ease-in-out infinite alternate;' : `box-shadow: 0 0 10px ${region.color};`}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          ">
           </div>
         `;
 
-        circle.bindPopup(popupHtml, {
+        const divIcon = L.divIcon({
+          html: iconHtml,
+          className: 'sevasync-custom-marker',
+          iconSize: [sizeMultiplier, sizeMultiplier],
+          iconAnchor: [sizeMultiplier/2, sizeMultiplier/2],
+          popupAnchor: [0, -sizeMultiplier/2]
+        });
+
+        const marker = L.marker(region.coords, { icon: divIcon });
+
+        const popupHtml = `
+          <div style="font-family:system-ui,sans-serif;min-width:200px;padding:4px">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--text-primary)">${region.label}</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">🧑‍💻 Admin: ${region.admin}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="background:${region.color}30;color:${region.color};border:1px solid ${region.color}60;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;text-transform:uppercase">${region.level}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-primary);font-weight:600">🙋 ${region.vols} volunteers · ✅ ${region.tasks} active tasks</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;border-top:1px solid var(--bg-border);padding-top:6px">🧠 AI Severity Score: ${region.score}</div>
+          </div>
+        `;
+
+        marker.bindPopup(popupHtml, {
           maxWidth: 280,
           className: 'sevasync-popup',
         });
 
-        circle.addTo(map!);
-
-        if (region.level === 'critical') {
-          const pulse = L.circleMarker(region.coords, {
-            radius: region.size + 8,
-            fillColor: 'transparent',
-            color: region.color,
-            weight: 2,
-            opacity: 0.4,
-            fillOpacity: 0,
-            className: 'leaflet-pulse-ring',
-          });
-          pulse.addTo(map!);
-        }
+        marker.addTo(map!);
       });
 
       leafletMapRef.current = map;
@@ -113,27 +121,22 @@ export default function SAMapPage() {
       <style>{`
         @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
         .sevasync-popup .leaflet-popup-content-wrapper {
-          background: #1e293b;
-          color: #e2e8f0;
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          border: 1px solid var(--bg-border);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-xl);
+          backdrop-filter: blur(12px);
         }
         .sevasync-popup .leaflet-popup-tip {
-          background: #1e293b;
+          background: var(--bg-card);
+          border: 1px solid var(--bg-border);
         }
         .leaflet-control-attribution {
           background: rgba(0,0,0,0.6) !important;
-          color: #666 !important;
+          color: #888 !important;
           font-size: 10px !important;
         }
-        .leaflet-control-attribution a { color: #888 !important; }
-        @keyframes leafletPulse {
-          0%   { transform: scale(1); opacity: 0.5; }
-          50%  { transform: scale(1.4); opacity: 0.2; }
-          100% { transform: scale(1); opacity: 0.5; }
-        }
-        .leaflet-pulse-ring { animation: leafletPulse 2s ease-in-out infinite; }
       `}</style>
       
       <div className="page-header">
@@ -158,7 +161,7 @@ export default function SAMapPage() {
       <div className="card" style={{ padding: '12px 20px', marginBottom: 20 }}>
         <div className="flex items-center gap-6" style={{ flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 600 }}>Severity:</span>
-          {[['🔴', 'Critical (80–100)', '#ef4444'], ['🟠', 'High (60–79)', '#f97316'], ['🟡', 'Medium (40–59)', '#eab308'], ['🟢', 'Low (0–39)', '#22c55e']].map(([, label, color]) => (
+          {[['🔴', 'Critical (80–100)', '#ef4444'], ['🟠', 'High (60–79)', '#F49C27'], ['🔵', 'Medium (40–59)', '#129A9C'], ['🟢', 'Low (0–39)', '#7EB64F']].map(([, label, color]) => (
             <div key={label as string} className="flex items-center gap-2">
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: color as string, boxShadow: `0 0 6px ${color}80` }} />
               <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{label}</span>
