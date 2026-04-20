@@ -36,11 +36,45 @@ const LOCATION_COORDS: Record<string, [number, number]> = {
   'bhandup': [19.1397, 72.9419],
 };
 
-function getCoords(location: string): [number, number] | null {
+async function geocodeLocation(location: string): Promise<[number, number] | null> {
   const lower = location.toLowerCase();
+  
+  // 1. Check local static dictionary
   for (const [key, coords] of Object.entries(LOCATION_COORDS)) {
     if (lower.includes(key)) return coords;
   }
+
+  // 2. Check localStorage Cache to prevent rate limiting
+  const cacheKey = `sevasync_geo_${lower}`;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  // 3. Dynamic Geocoding via Internal Next.js API Proxy
+  try {
+    const query = encodeURIComponent(location + (lower.includes('india') ? '' : ' India'));
+    const res = await fetch(`/api/geocode?q=${query}`);
+    
+    // STRICT RATE LIMITING: OpenStreetMap Nominatim blocks > 1 req/sec.
+    // If we reach this line, we made a network call. We MUST sleep to buffer the next iteration.
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        // Cache for 30 days essentially by persisting to local storage permanently
+        localStorage.setItem(cacheKey, JSON.stringify(coords));
+        return coords;
+      }
+    } else {
+      console.warn(`Geocode skipped for ${location}: API returned ${res.status}`);
+    }
+  } catch (err) {
+    console.error('Geocoding failed:', err);
+  }
+
   return null;
 }
 
@@ -148,7 +182,7 @@ export default function AdminMapPage() {
       });
 
       for (const need of filtered) {
-        const coords = getCoords(need.location);
+        const coords = await geocodeLocation(need.location);
         if (!coords) continue;
 
         const color = TYPE_COLORS[need.type] || '#129A9C';
@@ -231,8 +265,28 @@ export default function AdminMapPage() {
     return true;
   });
 
-  const mappedCount = activeNeeds.filter(n => getCoords(n.location) !== null).length;
-  const unmappedCount = activeNeeds.filter(n => getCoords(n.location) === null).length;
+  const [mappedCount, setMappedCount] = useState(0);
+  const [unmappedCount, setUnmappedCount] = useState(0);
+  const [mappedLocations, setMappedLocations] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    // Dynamically calculate geocoded coverage and location validity
+    const calc = async () => {
+      let mapped = 0;
+      let unmapped = 0;
+      const hash: Record<string, boolean> = {};
+      for (const n of activeNeeds) {
+        if (hash[n.location] !== undefined) continue; // skip duplicates
+        const c = await geocodeLocation(n.location);
+        if (c) { mapped++; hash[n.location] = true; }
+        else { unmapped++; hash[n.location] = false; }
+      }
+      setMappedCount(mapped);
+      setUnmappedCount(unmapped);
+      setMappedLocations(hash);
+    };
+    calc();
+  }, [activeNeeds]);
 
   return (
     <div className="animate-fade-in">
@@ -240,27 +294,22 @@ export default function AdminMapPage() {
       <style>{`
         @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
         .sevasync-popup .leaflet-popup-content-wrapper {
-          background: #1e293b;
-          color: #e2e8f0;
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          border: 1px solid var(--bg-border);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-xl);
+          backdrop-filter: blur(12px);
         }
         .sevasync-popup .leaflet-popup-tip {
-          background: #1e293b;
+          background: var(--bg-card);
+          border: 1px solid var(--bg-border);
         }
         .leaflet-control-attribution {
           background: rgba(0,0,0,0.6) !important;
-          color: #666 !important;
+          color: #888 !important;
           font-size: 10px !important;
         }
-        .leaflet-control-attribution a { color: #888 !important; }
-        @keyframes leafletPulse {
-          0%   { transform: scale(1); opacity: 0.5; }
-          50%  { transform: scale(1.4); opacity: 0.2; }
-          100% { transform: scale(1); opacity: 0.5; }
-        }
-        .leaflet-pulse-ring { animation: leafletPulse 2s ease-in-out infinite; }
       `}</style>
 
       <div className="page-header">
@@ -376,7 +425,7 @@ export default function AdminMapPage() {
               const topNeed = summary.needs.sort((a, b) => b.ai_score - a.ai_score)[0];
               const level = summary.topScore >= 80 ? 'critical' : summary.topScore >= 60 ? 'high' : summary.topScore >= 40 ? 'medium' : 'low';
               const severityColor = level === 'critical' ? 'var(--critical)' : level === 'high' ? 'var(--high)' : level === 'medium' ? 'var(--medium)' : 'var(--low)';
-              const hasMappedCoords = getCoords(loc) !== null;
+              const hasMappedCoords = mappedLocations[loc] === true;
 
               return (
                 <div key={loc} className="card animate-fade-in" style={{ padding: '14px 16px', cursor: 'pointer', opacity: hasMappedCoords ? 1 : 0.7 }} id={`map-loc-${loc.toLowerCase().replace(/\s+/g, '-')}-card`}

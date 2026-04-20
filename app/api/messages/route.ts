@@ -9,13 +9,16 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('user_id');
+  const taskId = searchParams.get('task_id');
 
   let query = supabase
     .from('messages')
     .select('*')
     .order('created_at', { ascending: true });
 
-  if (userId) {
+  if (taskId) {
+    query = query.eq('task_id', taskId);
+  } else if (userId) {
     // Get conversation between current user and specified user
     query = query.or(
       `and(from_id.eq.${user.id},to_id.eq.${userId}),and(from_id.eq.${userId},to_id.eq.${user.id})`

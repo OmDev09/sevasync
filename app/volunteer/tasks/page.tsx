@@ -18,6 +18,8 @@ export default function VolunteerTasksPage() {
   const [filter, setFilter] = useState('all');
   const [selected, setSelected] = useState<Task | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofNotes, setProofNotes] = useState('');
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
@@ -38,16 +40,33 @@ export default function VolunteerTasksPage() {
   const updateStatus = async (id: string, status: 'in_progress' | 'completed') => {
     setUpdating(true);
     try {
+      // 1. Update the actual task status
       const res = await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error('Update failed');
+      
+      // 2. If it's completed and there are proof notes, submit to the immutable Audit log via Messages table
+      if (status === 'completed' && proofNotes.trim() && selected) {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_id: selected.admin_id,
+            text: `[PROOF_OF_WORK] ${proofNotes.trim()}`,
+            task_id: id
+          })
+        });
+      }
+
       setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
       if (selected?.id === id) setSelected(prev => prev ? { ...prev, status } : null);
-      success(status === 'completed' ? 'Task Completed! 🎉' : 'Task Started ▶️',
-        status === 'completed' ? 'Great work! Your admin has been notified.' : 'Keep it up!');
+      setShowProofModal(false);
+      setProofNotes('');
+      success(status === 'completed' ? 'Proof Submitted! 🎉' : 'Task Started ▶️',
+        status === 'completed' ? 'Your Completion Proof is pending Admin Verification.' : 'Keep it up!');
     } catch {
       toastError('Failed to update task status');
     } finally {
@@ -191,8 +210,8 @@ export default function VolunteerTasksPage() {
               )}
               {selected.status === 'in_progress' && (
                 <button className="btn btn-accent" id={`vol-complete-task-${selected.id}-btn`}
-                  disabled={updating} onClick={() => updateStatus(selected.id, 'completed')}>
-                  {updating ? '⟳ Updating...' : '✓ Mark Complete'}
+                  disabled={updating} onClick={() => setShowProofModal(true)}>
+                  ✓ Mark Complete & Submit Proof
                 </button>
               )}
               {selected.status === 'completed' && (
@@ -216,6 +235,49 @@ export default function VolunteerTasksPage() {
           </div>
         )}
       </div>
+
+      {/* Proof of Work Modal */}
+      {showProofModal && selected && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',justifyContent: 'center', padding: 20 }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 460, padding: 24 }}>
+            <h3 className="h4" style={{ marginBottom: 8 }}>Verification Details</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
+              Before marking this task complete, please provide Proof of Work. Admins will review this to verify task completion.
+            </p>
+            
+            <div className="form-group">
+              <label className="form-label">Completion Notes / Evidence</label>
+              <textarea 
+                className="form-input" 
+                rows={4} 
+                style={{ resize: 'vertical' }}
+                placeholder="e.g. Delivered 50 boxes of food rations to shelter coordiantor Mr. Rajesh. Attached photo evidence."
+                value={proofNotes}
+                onChange={e => setProofNotes(e.target.value)}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Attach Photo Proof (Optional)</label>
+              <div style={{ border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
+                📷 Tap to capture or upload photo
+              </div>
+            </div>
+
+            <div className="flex gap-3" style={{ marginTop: 24 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowProofModal(false)} disabled={updating}>Cancel</button>
+              <button 
+                className="btn btn-accent" 
+                style={{ flex: 1 }} 
+                onClick={() => updateStatus(selected.id, 'completed')}
+                disabled={!proofNotes.trim() || updating}
+              >
+                {updating ? '⟳ Submitting...' : 'Submit Verification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

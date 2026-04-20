@@ -33,6 +33,10 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', type: 'Medical', priority: 'high', location: '', due: '', volunteer_id: '', instructions: '' });
+  const [viewTask, setViewTask] = useState<Task | null>(null);
+  const [proofLogs, setProofLogs] = useState<any[]>([]);
+  const [hasBeenVerified, setHasBeenVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [prefillApplied, setPrefillApplied] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -133,6 +137,59 @@ export default function TasksPage() {
     }
   };
 
+  const handleViewTask = async (task: Task) => {
+    setViewTask(task);
+    setProofLogs([]);
+    setHasBeenVerified(false);
+    if (task.status === 'completed') {
+      try {
+        const res = await fetch(`/api/messages?task_id=${task.id}`);
+        const data = await res.json();
+        const proofs = (data.messages || []).filter((m: any) => m.text.startsWith('[PROOF_OF_WORK]'));
+        const verified = (data.messages || []).some((m: any) => m.text.startsWith('[VERIFICATION_APPROVED]'));
+        setProofLogs(proofs);
+        setHasBeenVerified(verified);
+      } catch (e) {}
+    }
+  };
+
+  const handleVerifyProof = async (approved: boolean) => {
+    if (!viewTask) return;
+    setVerifying(true);
+    try {
+      const newStatus = approved ? 'completed' : 'in_progress';
+      const res = await fetch(`/api/tasks/${viewTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error();
+      
+      // If approved, optionally send a message back. If rejected, send a rejection notice.
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_id: viewTask.volunteer_id,
+          text: approved ? '[VERIFICATION_APPROVED] Admin verified your task completion. Great job!' : '[VERIFICATION_REJECTED] Admin rejected the task proof. Please review and resubmit.',
+          task_id: viewTask.id
+        })
+      });
+
+      setTasks(ts => ts.map(t => t.id === viewTask.id ? { ...t, status: newStatus as Task['status'] } : t));
+      if (approved) {
+        setHasBeenVerified(true);
+      } else {
+        setViewTask(null);
+      }
+      success(approved ? 'Task Verified ✅' : 'Proof Rejected ❌', approved ? 'The task is officially verified and archived.' : 'Task reopened and assigned back to the volunteer.');
+    } catch {
+      toastError('Failed to verify proof');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -192,7 +249,7 @@ export default function TasksPage() {
 
               {getColTasks(col.id).map(task => (
                 <TaskCard key={task.id} task={task} onDragStart={() => setDragging(task.id)}
-                  onMove={(status) => moveTask(task.id, status)} colOptions={COLS} />
+                  onMove={(status) => moveTask(task.id, status)} onView={() => handleViewTask(task)} colOptions={COLS} />
               ))}
 
               {getColTasks(col.id).length === 0 && (
@@ -275,25 +332,102 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* Task Verification / Details Modal */}
+      {viewTask && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={e => { if (e.target === e.currentTarget) setViewTask(null); }}
+        >
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 500, padding: 24 }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+              <h2 className="h4" style={{ margin: 0 }}>Review Task</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setViewTask(null)}>✕</button>
+            </div>
+            
+            <div className="flex items-center gap-2" style={{ marginBottom: 16 }}>
+              <span className={`badge badge-${viewTask.priority}`}>{viewTask.priority}</span>
+              <span className="badge badge-muted">{viewTask.type}</span>
+            </div>
+            
+            <h3 style={{ fontWeight: 700, marginBottom: 8, fontSize: '1.125rem' }}>{viewTask.title}</h3>
+            
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+              <div>📍 Location: {viewTask.location || 'Unknown'}</div>
+              <div>👤 Volunteer: {viewTask.volunteer_id ? 'Assigned' : 'Unassigned'}</div>
+              <div>📝 Status: <span style={{ textTransform: 'capitalize', color: 'var(--brand-primary-light)' }}>{viewTask.status.replace('_', ' ')}</span></div>
+            </div>
+
+            {viewTask.status === 'completed' && (
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-sm)', padding: 16, marginBottom: 20 }}>
+                {hasBeenVerified ? (
+                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>✅</div>
+                    <h4 style={{ color: 'var(--low)', margin: 0, fontSize: '1rem' }}>Verified & Accepted</h4>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 4 }}>This task's proof of work has been thoroughly verified and archived.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-accent)', marginBottom: 12 }}>
+                      🛡️ PROOF OF WORK REQUIRED
+                    </div>
+                    
+                    {proofLogs.length === 0 ? (
+                      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No proof notes found for this task.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {proofLogs.map(log => (
+                          <div key={log.id} style={{ background: 'rgba(99,102,241,0.05)', padding: 12, borderRadius: 6, fontSize: '0.875rem', borderLeft: '3px solid var(--brand-primary)' }}>
+                            {log.text.replace('[PROOF_OF_WORK]', '').trim()}
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                              Submitted: {new Date(log.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2" style={{ marginTop: 20 }}>
+                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => handleVerifyProof(true)} disabled={verifying}>
+                        ✅ Accept Verification
+                      </button>
+                      <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => handleVerifyProof(false)} disabled={verifying}>
+                        ❌ Reject & Reopen Task
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            
+            {viewTask.status !== 'completed' && (
+              <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)' }}>
+                This task is currently <strong style={{ color: 'var(--brand-primary-light)' }}>{viewTask.status.replace('_', ' ')}</strong>.<br />
+                Proof of Work verification will appear here once the volunteer marks it completed.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function TaskCard({ task, onDragStart, onMove, colOptions }: {
+function TaskCard({ task, onDragStart, onMove, onView, colOptions }: {
   task: Task;
   onDragStart: () => void;
   onMove: (s: string) => void;
+  onView: () => void;
   colOptions: typeof COLS;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const typeColor = TYPE_COLORS[task.type] || 'var(--text-secondary)';
 
   return (
-    <div className="kanban-card" draggable onDragStart={onDragStart} style={{ position: 'relative' }}>
+    <div className="kanban-card" draggable onDragStart={onDragStart} onClick={onView} style={{ position: 'relative', cursor: 'pointer' }}>
       <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
         <span className={`badge badge-${task.priority}`} style={{ fontSize: '0.675rem' }}>{task.priority}</span>
         <span className="badge" style={{ background: `${typeColor}18`, color: typeColor, border: `1px solid ${typeColor}30`, fontSize: '0.675rem' }}>{task.type}</span>
-        <button id={`task-menu-${task.id}-btn`} onClick={() => setShowMenu(!showMenu)}
+        <button id={`task-menu-${task.id}-btn`} onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
           style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>⋯</button>
       </div>
       {showMenu && (

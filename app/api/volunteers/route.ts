@@ -78,3 +78,33 @@ export async function POST(request: Request) {
     },
   }, { status: 201 });
 }
+
+// DELETE /api/volunteers — completely deactivate/delete a volunteer
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: 'Volunteer ID required' }, { status: 400 });
+
+    // Ensure the caller is an admin or super-admin
+    const { data: callerProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (!callerProfile || (callerProfile.role !== 'admin' && callerProfile.role !== 'super-admin')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Completely remove the user from Supabase Auth via Admin role
+    const { error: authError } = await adminSupabase.auth.admin.deleteUser(id);
+    if (authError) throw authError;
+
+    // Remove from public profiles
+    const { error: profileError } = await adminSupabase.from('profiles').delete().eq('id', id);
+    if (profileError) throw profileError;
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to deactivate user' }, { status: 500 });
+  }
+}

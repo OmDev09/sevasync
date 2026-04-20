@@ -91,6 +91,26 @@ export default function VolunteersPage() {
     }
   };
 
+  const handleDeactivate = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to completely deactivate and delete ${name}'s account? This action cannot be undone.`)) return;
+    
+    try {
+      const res = await fetch('/api/volunteers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to deactivate volunteer');
+      
+      setVolunteers(prev => prev.filter(v => v.id !== id));
+      if (selectedVol?.id === id) setSelectedVol(null);
+      success('Volunteer Deactivated', `${name}'s account has been securely removed.`);
+    } catch (e: unknown) {
+      toastError('Deactivation Failed', e instanceof Error ? e.message : 'Unknown error');
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -288,6 +308,16 @@ export default function VolunteersPage() {
                 onClick={() => toastError('Messaging not connected yet', 'Use the Messages page while chat wiring is still pending.')}
               >
                 💬 Message
+              </button>
+              
+              <div className="divider" style={{ margin: '8px 0' }} />
+              
+              <button
+                className="btn"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                onClick={() => handleDeactivate(selectedVol.id, selectedVol.name)}
+              >
+                🚨 Deactivate Account
               </button>
             </div>
           </div>
