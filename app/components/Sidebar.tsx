@@ -58,40 +58,62 @@ const ROLE_CONFIG = {
 
 export default function Sidebar({ role, userName, userInitials }: SidebarProps) {
   const pathname = usePathname();
-  const { } = useAuth();
+  const { user } = useAuth();
   const config = ROLE_CONFIG[role];
 
-  const [badgeCounts, setBadgeCounts] = useState<{ needs?: number; tasks?: number }>({});
+  const [badgeCounts, setBadgeCounts] = useState<{ needs?: number; tasks?: number; messages?: number }>({});
   const [messagesOpened, setMessagesOpened] = useState(false);
 
   useEffect(() => {
     if (pathname.startsWith('/admin/messages') || pathname.startsWith('/volunteer/messages')) {
+      // eslint-disable-next-line
       setMessagesOpened(true);
     }
   }, [pathname]);
 
   useEffect(() => {
-    if (role === 'admin') {
+    if (role === 'admin' && user?.id) {
       const fetchCounts = async () => {
         try {
-          const [nRes, tRes] = await Promise.all([
-            fetch('/api/needs'), fetch('/api/tasks')
+          const [nRes, tRes, mRes] = await Promise.all([
+            fetch('/api/needs'), fetch('/api/tasks'), fetch('/api/messages')
           ]);
           const nData = await nRes.json();
           const tData = await tRes.json();
+          const mData = await mRes.json();
           const openNeeds = (nData.needs || []).filter((n: { status: string }) => n.status === 'open');
           const activeTasks = (tData.tasks || []).filter((t: { status: string }) => t.status !== 'completed' && t.status !== 'cancelled');
-          setBadgeCounts({ needs: openNeeds.length, tasks: activeTasks.length });
+          const unreadMsgs = (mData.messages || []).filter((m: { to_id: string; read: boolean }) => m.to_id === user.id && !m.read);
+          setBadgeCounts({ needs: openNeeds.length, tasks: activeTasks.length, messages: unreadMsgs.length });
+        } catch {}
+      };
+      fetchCounts();
+    } else if (role === 'volunteer' && user?.id) {
+      const fetchCounts = async () => {
+        try {
+          const [tRes, mRes] = await Promise.all([
+            fetch(`/api/tasks?volunteer_id=${user.id}`), fetch('/api/messages')
+          ]);
+          const tData = await tRes.json();
+          const mData = await mRes.json();
+          const activeTasks = (tData.tasks || []).filter((t: { status: string }) => t.status !== 'completed' && t.status !== 'cancelled');
+          const unreadMsgs = (mData.messages || []).filter((m: { to_id: string; read: boolean }) => m.to_id === user.id && !m.read);
+          setBadgeCounts({ tasks: activeTasks.length, messages: unreadMsgs.length });
         } catch {}
       };
       fetchCounts();
     }
-  }, [role]);
+  }, [role, user?.id]);
 
   const navItems = config.nav.map(item => {
     if (role === 'admin') {
       if (item.label === 'Needs' && badgeCounts.needs !== undefined) return { ...item, badge: badgeCounts.needs };
       if (item.label === 'Tasks' && badgeCounts.tasks !== undefined) return { ...item, badge: badgeCounts.tasks };
+      if (item.label === 'Messages' && badgeCounts.messages !== undefined) return { ...item, badge: badgeCounts.messages };
+    } else if (role === 'volunteer') {
+      if (item.label === 'My Tasks' && badgeCounts.tasks !== undefined) return { ...item, badge: badgeCounts.tasks };
+      if (item.label === 'Notifications' && badgeCounts.tasks !== undefined) return { ...item, badge: badgeCounts.tasks };
+      if (item.label === 'Messages' && badgeCounts.messages !== undefined) return { ...item, badge: badgeCounts.messages };
     }
     return item;
   });

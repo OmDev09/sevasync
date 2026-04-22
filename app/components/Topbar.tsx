@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter, usePathname } from 'next/navigation';
+
 interface TopbarProps {
   title: string;
   subtitle?: string;
@@ -7,6 +9,15 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title, subtitle, actions }: TopbarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleNotificationClick = () => {
+    if (pathname.startsWith('/volunteer')) {
+      router.push('/volunteer/notifications');
+    }
+    // other roles could be added here in the future
+  };
   return (
     <header className="topbar" id="topbar">
       <div>
@@ -17,7 +28,7 @@ export default function Topbar({ title, subtitle, actions }: TopbarProps) {
       </div>
       <div className="topbar-actions">
         {actions}
-        <button className="topbar-icon-btn" id="topbar-notifications-btn" title="Notifications">
+        <button className="topbar-icon-btn" id="topbar-notifications-btn" title="Notifications" onClick={handleNotificationClick}>
           🔔
           <span className="notification-dot" />
         </button>

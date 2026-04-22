@@ -250,7 +250,7 @@ export default function VolunteerMessagesPage() {
         </div>
 
         {/* Chat area */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           {selectedThread ? (
             <>
               {/* Chat header */}
