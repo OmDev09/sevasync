@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/supabase/database.types';
@@ -27,75 +27,116 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    return data as Profile | null;
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        if (data) return data as Profile;
+        if (error) console.warn(`Profile fetch attempt ${attempt + 1} failed:`, error.message);
+      } catch (err) {
+        console.warn(`Profile fetch attempt ${attempt + 1} exception:`, err);
+      }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500));
+    }
+    return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   useEffect(() => {
-    let mounted = true;
+    // Each effect invocation gets its own `cancelled` flag.
+    // React Strict Mode runs effects twice in dev — the first cleanup
+    // sets cancelled=true, so the first mount's async work is ignored.
+    let cancelled = false;
+    const abortController = new AbortController();
 
-    async function loadInitialSession() {
+    async function loadSession() {
       try {
-        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
-        if (error) {
-          // If the token is completely invalid/expired and couldn't be refreshed,
-          // getUser() throws. We should clear the user securely.
-          if (mounted) {
-            setUser(null);
-            setProfile(null);
-          }
-        } else {
-          if (mounted) setUser(currentUser);
-          
-          if (currentUser) {
-            const p = await fetchProfile(currentUser.id);
-            if (mounted) setProfile(p);
-          } else {
-            if (mounted) setProfile(null);
+        const res = await fetch('/api/auth/me', {
+          signal: abortController.signal,
+        });
+
+        if (cancelled) return; // strict mode cleanup happened
+
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data.user && data.profile) {
+            setUser(data.user);
+            setProfile(data.profile);
+            setLoading(false);
+            return;
           }
         }
-      } catch (err) {
-        console.error('Session init error:', err);
-      } finally {
-        if (mounted) setLoading(false);
+      } catch (err: unknown) {
+        // AbortError = strict mode cleanup aborted the fetch — completely normal, ignore
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        console.warn('Server session check failed, trying client fallback:', err);
+      }
+
+      // If server fetch failed (non-abort), try Supabase client as fallback
+      if (cancelled) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (session?.user) {
+          setUser(session.user);
+          const p = await fetchProfile(session.user.id);
+          if (!cancelled) {
+            setProfile(p);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // Nothing worked — user is genuinely not logged in
+      if (!cancelled) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
       }
     }
 
-    loadInitialSession();
+    loadSession();
 
+    // Listen for FUTURE auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: any, session: any) => {
+      async (event, session) => {
         if (event === 'INITIAL_SESSION') return;
-        try {
-          const currentUser = session?.user ?? null;
-          if (mounted) setUser(currentUser);
-          
-          if (currentUser) {
-            const p = await fetchProfile(currentUser.id);
-            if (mounted) setProfile(p);
-          } else {
-            if (mounted) setProfile(null);
+        if (cancelled) return;
+
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          const p = await fetchProfile(currentUser.id);
+          if (!cancelled) {
+            setProfile(p);
+            setLoading(false);
           }
-        } catch (err) {
-          console.error('Auth state change error:', err);
-        } finally {
-          if (mounted) setLoading(false);
+        } else {
+          if (!cancelled) {
+            setProfile(null);
+            setLoading(false);
+          }
         }
       }
     );
 
     return () => {
-      mounted = false;
+      cancelled = true;
+      abortController.abort();
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
