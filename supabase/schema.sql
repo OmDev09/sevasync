@@ -160,7 +160,11 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- ── profiles policies ──
 CREATE POLICY "profiles_select"
   ON public.profiles FOR SELECT
-  USING (id = auth.uid() OR public.current_user_role() IN ('admin','super-admin'));
+  USING (
+    id = auth.uid()
+    OR role IN ('admin', 'super-admin')
+    OR public.current_user_role() IN ('admin', 'super-admin')
+  );
 
 CREATE POLICY "profiles_update_own"
   ON public.profiles FOR UPDATE

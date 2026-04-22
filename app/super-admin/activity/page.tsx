@@ -45,7 +45,7 @@ export default function SAActivityPage() {
       ]);
 
       const profiles = pRes.data || [];
-      const getProfile = (id?: string | null) => profiles.find(p => p.id === id);
+      const getProfile = (id?: string | null) => profiles.find((p: Profile) => p.id === id);
 
       const allActivity: ActivityItem[] = [];
 
