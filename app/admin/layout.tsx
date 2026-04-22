@@ -12,9 +12,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'admin')) {
-      router.push('/login');
+      window.location.href = '/login';
     }
-  }, [user, profile, loading, router]);
+  }, [user, profile, loading]);
 
   if (loading || !user || !profile) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
