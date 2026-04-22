@@ -12,9 +12,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   useEffect(() => {
     if (!loading && (!user || profile?.role !== 'super-admin')) {
-      window.location.href = '/login';
+      router.push('/login');
     }
-  }, [user, profile, loading]);
+  }, [user, profile, loading, router]);
 
   if (loading || !user || !profile) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
