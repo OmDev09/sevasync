@@ -43,15 +43,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function loadInitialSession() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        if (mounted) setUser(currentUser);
-        
-        if (currentUser) {
-          const p = await fetchProfile(currentUser.id);
-          if (mounted) setProfile(p);
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        if (error) {
+          // If the token is completely invalid/expired and couldn't be refreshed,
+          // getUser() throws. We should clear the user securely.
+          if (mounted) {
+            setUser(null);
+            setProfile(null);
+          }
         } else {
-          if (mounted) setProfile(null);
+          if (mounted) setUser(currentUser);
+          
+          if (currentUser) {
+            const p = await fetchProfile(currentUser.id);
+            if (mounted) setProfile(p);
+          } else {
+            if (mounted) setProfile(null);
+          }
         }
       } catch (err) {
         console.error('Session init error:', err);
