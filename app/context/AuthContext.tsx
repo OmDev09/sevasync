@@ -105,11 +105,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (p) {
         setProfile(p);
         router.push(ROLE_HOME[p.role] ?? '/');
+        return { success: true };
+      } else {
+        setLoading(false);
+        return { success: false, error: 'System profile missing.' };
       }
     }
 
     setLoading(false);
-    return { success: true };
+    return { success: false, error: 'Session failed.' };
   }, [supabase, router, fetchProfile]);
 
   const logout = useCallback(async () => {

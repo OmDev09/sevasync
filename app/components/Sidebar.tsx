@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
@@ -60,6 +61,41 @@ export default function Sidebar({ role, userName, userInitials }: SidebarProps) 
   const { } = useAuth();
   const config = ROLE_CONFIG[role];
 
+  const [badgeCounts, setBadgeCounts] = useState<{ needs?: number; tasks?: number }>({});
+  const [messagesOpened, setMessagesOpened] = useState(false);
+
+  useEffect(() => {
+    if (pathname.startsWith('/admin/messages') || pathname.startsWith('/volunteer/messages')) {
+      setMessagesOpened(true);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (role === 'admin') {
+      const fetchCounts = async () => {
+        try {
+          const [nRes, tRes] = await Promise.all([
+            fetch('/api/needs'), fetch('/api/tasks')
+          ]);
+          const nData = await nRes.json();
+          const tData = await tRes.json();
+          const openNeeds = (nData.needs || []).filter((n: { status: string }) => n.status === 'open');
+          const activeTasks = (tData.tasks || []).filter((t: { status: string }) => t.status !== 'completed' && t.status !== 'cancelled');
+          setBadgeCounts({ needs: openNeeds.length, tasks: activeTasks.length });
+        } catch {}
+      };
+      fetchCounts();
+    }
+  }, [role]);
+
+  const navItems = config.nav.map(item => {
+    if (role === 'admin') {
+      if (item.label === 'Needs' && badgeCounts.needs !== undefined) return { ...item, badge: badgeCounts.needs };
+      if (item.label === 'Tasks' && badgeCounts.tasks !== undefined) return { ...item, badge: badgeCounts.tasks };
+    }
+    return item;
+  });
+
   const isActive = (href: string) => {
     if (href === `/${role}`) return pathname === href;
     return pathname.startsWith(href);
@@ -96,7 +132,9 @@ export default function Sidebar({ role, userName, userInitials }: SidebarProps) 
       {/* Nav */}
       <nav className="sidebar-nav">
         <span className="sidebar-section-label">Navigation</span>
-        {config.nav.map((item) => (
+        {navItems.map((item) => {
+          const hideBadge = item.label === 'Messages' && messagesOpened;
+          return (
           <Link
             key={item.href}
             href={item.href}
@@ -105,11 +143,11 @@ export default function Sidebar({ role, userName, userInitials }: SidebarProps) 
           >
             <span className="icon">{item.icon}</span>
             <span>{item.label}</span>
-            {item.badge && item.badge > 0 && (
+            {item.badge !== undefined && item.badge > 0 && !hideBadge && (
               <span className="badge-count">{item.badge}</span>
             )}
           </Link>
-        ))}
+        )})}
       </nav>
 
       {/* Footer / User */}

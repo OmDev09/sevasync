@@ -1,8 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './context/ThemeContext';
+import { motion, useInView, animate } from 'framer-motion';
+
+function AnimatedNumber({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  
+  const numMatch = value.match(/\d+/g);
+  const rawNum = numMatch ? parseInt(numMatch.join(''), 10) : 0;
+  const suffix = value.replace(/[\d,]/g, '');
+
+  useEffect(() => {
+    if (isInView && ref.current) {
+      animate(0, rawNum, {
+        duration: 2.5,
+        ease: "easeOut",
+        onUpdate: (cv) => {
+          if (ref.current) {
+            ref.current.textContent = Math.floor(cv).toLocaleString() + suffix;
+          }
+        }
+      });
+    }
+  }, [isInView, rawNum, suffix]);
+
+  return <span ref={ref}>0{suffix}</span>;
+}
 
 const stats = [
   { label: 'Volunteers Coordinated', value: '12,400+' },
@@ -278,7 +304,7 @@ export default function LandingPage() {
                   className="font-display font-extrabold"
                   style={{ fontSize: '2.25rem', color: 'var(--text-primary)', marginBottom: 4, letterSpacing: '-0.02em' }}
                 >
-                  {s.value}
+                  <AnimatedNumber value={s.value} />
                 </div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>{s.label}</div>
               </div>
