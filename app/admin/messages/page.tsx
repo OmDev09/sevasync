@@ -211,7 +211,7 @@ export default function MessagesPage() {
 
       <div className="grid grid-cols-2 gap-0" style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Thread list */}
-        <div style={{ borderRight: '1px solid var(--bg-border)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ borderRight: '1px solid var(--bg-border)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bg-border)' }}>
             <input
               className="form-input"
@@ -223,7 +223,7 @@ export default function MessagesPage() {
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loadingThreads ? (
-              [1,2,3].map(i => (
+              [1, 2, 3].map(i => (
                 <div key={i} style={{ padding: '14px 16px', borderBottom: '1px solid var(--bg-border)', display: 'flex', gap: 12, alignItems: 'center' }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--bg-elevated)' }} />
                   <div style={{ flex: 1 }}>
@@ -278,7 +278,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat area */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           {selectedThread ? (
             <>
               {/* Chat header */}

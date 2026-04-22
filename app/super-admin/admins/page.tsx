@@ -8,12 +8,12 @@ export default function AdminsManagementPage() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Profile | null>(null);
   const [search, setSearch] = useState('');
-  
+
   const [admins, setAdmins] = useState<Profile[]>([]);
   const [volunteers, setVolunteers] = useState<Profile[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Create admin states
   const [createData, setCreateData] = useState({ name: '', email: '', phone: '', region: '' });
   const [creating, setCreating] = useState(false);
@@ -48,8 +48,8 @@ export default function AdminsManagementPage() {
 
   const handleCreateAdmin = async () => {
     if (!createData.name || !createData.email || !createData.region) {
-       setCreateResult({ error: 'Please set a Name, Email, and Region' });
-       return;
+      setCreateResult({ error: 'Please set a Name, Email, and Region' });
+      return;
     }
     setCreating(true);
     setCreateResult(null);
@@ -61,7 +61,7 @@ export default function AdminsManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create admin');
-      
+
       setCreateResult({
         email: data.credentials.email,
         tempPassword: data.credentials.temporaryPassword
@@ -99,8 +99,8 @@ export default function AdminsManagementPage() {
   };
 
   const filtered = admins.filter(a =>
-    !search || 
-    a.name?.toLowerCase().includes(search.toLowerCase()) || 
+    !search ||
+    a.name?.toLowerCase().includes(search.toLowerCase()) ||
     (a.region || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -208,20 +208,20 @@ export default function AdminsManagementPage() {
               <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{selected.email}</div>
               <span className={`badge badge-low`} style={{ marginTop: 10, display: 'inline-flex' }}>Active Role: {selected.role}</span>
             </div>
-            
+
             {editMode ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
-                  <input className="form-input" disabled={editing} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                  <input className="form-input" disabled={editing} value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone</label>
-                  <input className="form-input" disabled={editing} value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                  <input className="form-input" disabled={editing} value={editData.phone} onChange={e => setEditData({ ...editData, phone: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Region</label>
-                  <input className="form-input" disabled={editing} value={editData.region} onChange={e => setEditData({...editData, region: e.target.value})} />
+                  <input className="form-input" disabled={editing} value={editData.region} onChange={e => setEditData({ ...editData, region: e.target.value })} />
                 </div>
                 <div className="flex gap-2" style={{ marginTop: 10 }}>
                   <button className="btn btn-primary" style={{ flex: 1 }} disabled={editing} onClick={handleEditAdmin}>
@@ -262,7 +262,7 @@ export default function AdminsManagementPage() {
               <h2 className="h3 font-display">Create Admin Account</h2>
               {!creating && <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>✕</button>}
             </div>
-            
+
             {createResult?.tempPassword ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="card" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
@@ -278,30 +278,30 @@ export default function AdminsManagementPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {createResult?.error && <div className="text-sm text-critical mb-2">{createResult.error}</div>}
-                
+
                 <div className="form-group">
                   <label className="form-label">Full Name *</label>
-                  <input className="form-input" disabled={creating} placeholder="Admin full name" value={createData.name} onChange={e => setCreateData({...createData, name: e.target.value})} />
+                  <input className="form-input" disabled={creating} placeholder="Admin full name" value={createData.name} onChange={e => setCreateData({ ...createData, name: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email *</label>
-                  <input className="form-input" disabled={creating} type="email" placeholder="admin@sevasync.com" value={createData.email} onChange={e => setCreateData({...createData, email: e.target.value})} />
+                  <input className="form-input" disabled={creating} type="email" placeholder="admin@sevasync.com" value={createData.email} onChange={e => setCreateData({ ...createData, email: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone</label>
-                  <input className="form-input" disabled={creating} placeholder="+91 XXXXX XXXXX" value={createData.phone} onChange={e => setCreateData({...createData, phone: e.target.value})} />
+                  <input className="form-input" disabled={creating} placeholder="+91 XXXXX XXXXX" value={createData.phone} onChange={e => setCreateData({ ...createData, phone: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Region / Organization *</label>
-                  <input className="form-input" disabled={creating} placeholder="e.g. Mumbai North" value={createData.region} onChange={e => setCreateData({...createData, region: e.target.value})} />
+                  <input className="form-input" disabled={creating} placeholder="e.g. Mumbai North" value={createData.region} onChange={e => setCreateData({ ...createData, region: e.target.value })} />
                 </div>
-                
+
                 <button className="btn btn-primary" disabled={creating} onClick={handleCreateAdmin}>
                   {creating ? 'Creating...' : 'Create Admin Account'}
                 </button>
                 <button className="btn btn-secondary" disabled={creating} onClick={() => setShowModal(false)}>Cancel</button>
               </div>
-             )}
+            )}
           </div>
         </div>
       )}

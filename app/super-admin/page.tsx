@@ -38,12 +38,12 @@ export default function SuperAdminDashboard() {
   const activeTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
   const completedTasks = tasks.filter(t => t.status === 'completed');
   const criticalTasks = tasks.filter(t => t.priority === 'critical');
-  
+
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
-  
+
   const pendingNeeds = needs.filter(n => n.status !== 'resolved');
   const criticalNeeds = needs.filter(n => n.severity === 'critical');
-  
+
   const regionsCovered = new Set(profiles.map(p => p.region).filter(Boolean));
 
   // Dynamic Activity mapping
@@ -199,8 +199,8 @@ export default function SuperAdminDashboard() {
                         width: `${r.pct}%`,
                         background: r.level === 'critical' ? 'var(--critical)'
                           : r.level === 'high' ? 'var(--high)'
-                          : r.level === 'medium' ? 'var(--medium)'
-                          : 'linear-gradient(90deg, var(--brand-primary), var(--brand-accent))',
+                            : r.level === 'medium' ? 'var(--medium)'
+                              : 'linear-gradient(90deg, var(--brand-primary), var(--brand-accent))',
                       }}
                     />
                   </div>
