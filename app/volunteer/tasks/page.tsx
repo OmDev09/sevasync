@@ -55,7 +55,7 @@ export default function VolunteerTasksPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to_id: selected.admin_id,
-            text: `[PROOF_OF_WORK] ${proofNotes.trim()}`,
+            text: `[PROOF_OF_WORK] Task: "${selected.title}" — ${proofNotes.trim()}`,
             task_id: id
           })
         });

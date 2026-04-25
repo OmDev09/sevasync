@@ -313,7 +313,7 @@ export default function MessagesPage() {
                             border: `1px solid ${isMine ? 'rgba(99,102,241,0.3)' : 'var(--bg-border)'}`,
                           }}
                         >
-                          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{msg.text}</div>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{formatMessageText(msg.text)}</div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4, textAlign: isMine ? 'right' : 'left' }}>
                             {getTimeStr(msg.created_at)}
                           </div>
@@ -408,4 +408,38 @@ function getTimeStr(iso: string) {
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffHr < 48) return 'Yesterday';
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function formatMessageText(text: string) {
+  if (text.startsWith('[PROOF_OF_WORK]')) {
+    const body = text.replace('[PROOF_OF_WORK]', '').trim();
+    return (
+      <div>
+        <span style={{ display: 'inline-block', background: 'rgba(99,102,241,0.15)', color: 'var(--brand-primary-light)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>📋 PROOF OF WORK</span>
+        <div style={{ marginTop: 4 }}>{body}</div>
+      </div>
+    );
+  }
+  if (text.startsWith('[VERIFICATION_APPROVED]')) {
+    const body = text.replace('[VERIFICATION_APPROVED]', '').trim();
+    return (
+      <div>
+        <span style={{ display: 'inline-block', background: 'rgba(34,197,94,0.15)', color: 'var(--low)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>✅ VERIFIED</span>
+        <div style={{ marginTop: 4 }}>{body}</div>
+      </div>
+    );
+  }
+  if (text.startsWith('[VERIFICATION_REJECTED]')) {
+    const body = text.replace('[VERIFICATION_REJECTED]', '').trim();
+    return (
+      <div>
+        <span style={{ display: 'inline-block', background: 'rgba(239,68,68,0.15)', color: 'var(--critical)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>❌ REJECTED</span>
+        <div style={{ marginTop: 4 }}>{body}</div>
+      </div>
+    );
+  }
+  if (text.startsWith('📢 BROADCAST:')) {
+    return <span><strong style={{ color: 'var(--brand-warm)' }}>{text.split('📢 BROADCAST:')[1]}</strong></span>;
+  }
+  return text;
 }

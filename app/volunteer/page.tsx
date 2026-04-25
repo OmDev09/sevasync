@@ -21,6 +21,10 @@ export default function VolunteerDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofNotes, setProofNotes] = useState('');
+  const [proofTaskId, setProofTaskId] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -44,13 +48,45 @@ export default function VolunteerDashboard() {
   const initials = userName.split(' ').map(n => n[0]).join('');
   const skills = profile?.skills || [];
 
+  const openProofModal = (taskId: string) => {
+    setProofTaskId(taskId);
+    setProofNotes('');
+    setShowProofModal(true);
+  };
+
   const updateStatus = async (id: string, status: 'in_progress' | 'completed') => {
-    await fetch(`/api/tasks/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+
+      // If completing, send proof notes to admin via messages
+      if (status === 'completed' && proofNotes.trim()) {
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+          await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to_id: task.admin_id,
+              text: `[PROOF_OF_WORK] Task: "${task.title}" — ${proofNotes.trim()}`,
+              task_id: id,
+            }),
+          });
+        }
+      }
+
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+      setShowProofModal(false);
+      setProofNotes('');
+      setProofTaskId(null);
+    } catch { /* ignore */ } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -139,7 +175,7 @@ export default function VolunteerDashboard() {
                     )}
                     {task.status === 'in_progress' && (
                       <button className="btn btn-accent btn-sm" id={`complete-task-${task.id}-btn`}
-                        onClick={() => updateStatus(task.id, 'completed')}>✓ Complete</button>
+                        onClick={() => openProofModal(task.id)}>✓ Complete</button>
                     )}
                     {task.status === 'completed' && (
                       <span style={{ fontSize: '0.8125rem', color: 'var(--low)' }}>✓ Completed</span>
@@ -226,6 +262,49 @@ export default function VolunteerDashboard() {
           </div>
         </div>
       </div>
+      {/* Proof of Work Modal */}
+      {showProofModal && proofTaskId && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 460, padding: 24 }}>
+            <h3 className="h4" style={{ marginBottom: 8 }}>🔒 Proof of Work</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
+              Please describe what you did to complete this task. Your admin will review and verify this before final approval.
+            </p>
+
+            <div className="form-group">
+              <label className="form-label">Completion Notes / Evidence *</label>
+              <textarea
+                className="form-input"
+                rows={4}
+                style={{ resize: 'vertical' }}
+                placeholder="e.g. Delivered 50 food kits to the shelter. Coordinator Mr. Rajesh confirmed receipt."
+                value={proofNotes}
+                onChange={e => setProofNotes(e.target.value)}
+                id="proof-of-work-notes"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Attach Photo Proof (Optional)</label>
+              <div style={{ border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
+                📷 Tap to capture or upload photo
+              </div>
+            </div>
+
+            <div className="flex gap-3" style={{ marginTop: 24 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setShowProofModal(false); setProofTaskId(null); }} disabled={updating} id="proof-modal-cancel-btn">Cancel</button>
+              <button
+                className="btn btn-accent" style={{ flex: 1 }}
+                onClick={() => updateStatus(proofTaskId, 'completed')}
+                disabled={!proofNotes.trim() || updating}
+                id="proof-modal-submit-btn"
+              >
+                {updating ? '⟳ Submitting...' : '✓ Submit & Complete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

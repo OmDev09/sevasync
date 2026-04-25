@@ -171,7 +171,9 @@ export default function TasksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to_id: viewTask.volunteer_id,
-          text: approved ? '[VERIFICATION_APPROVED] Admin verified your task completion. Great job!' : '[VERIFICATION_REJECTED] Admin rejected the task proof. Please review and resubmit.',
+          text: approved
+            ? `[VERIFICATION_APPROVED] Your proof for task "${viewTask.title}" has been verified by Admin. Great job!`
+            : `[VERIFICATION_REJECTED] Your proof for task "${viewTask.title}" was rejected by Admin. Please review and resubmit.`,
           task_id: viewTask.id
         })
       });
