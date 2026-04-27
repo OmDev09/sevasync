@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import type { Task, Notification } from '../../lib/supabase/database.types';
+import { createClient } from '@/lib/supabase/client';
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: 'var(--critical)', high: 'var(--high)', medium: 'var(--medium)', low: 'var(--low)',
@@ -17,6 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function VolunteerDashboard() {
   const { user, profile } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -24,6 +27,8 @@ export default function VolunteerDashboard() {
   const [showProofModal, setShowProofModal] = useState(false);
   const [proofNotes, setProofNotes] = useState('');
   const [proofTaskId, setProofTaskId] = useState<string | null>(null);
+  const [proofPhotoUrl, setProofPhotoUrl] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -51,7 +56,33 @@ export default function VolunteerDashboard() {
   const openProofModal = (taskId: string) => {
     setProofTaskId(taskId);
     setProofNotes('');
+    setProofPhotoUrl('');
     setShowProofModal(true);
+  };
+
+  const handleUploadProofPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+    setUploadingProof(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `proof-${profile.id}-${Math.random()}.${fileExt}`;
+      
+      const uploadPromise = supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+      const timeoutPromise = new Promise<{error?: any}>((_, reject) => setTimeout(() => reject(new Error('Upload timed out. Is your connection stable?')), 15000));
+      
+      const { error: uploadErr } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+      if (uploadErr) throw uploadErr;
+      
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setProofPhotoUrl(publicUrl);
+    } catch (e: any) {
+      toastError('Upload failed', e.message || 'There was an error uploading your photo proof.');
+    } finally {
+      if (e.target) e.target.value = '';
+      setUploadingProof(false);
+    }
   };
 
   const updateStatus = async (id: string, status: 'in_progress' | 'completed') => {
@@ -68,12 +99,13 @@ export default function VolunteerDashboard() {
       if (status === 'completed' && proofNotes.trim()) {
         const task = tasks.find(t => t.id === id);
         if (task) {
+          const finalMessage = `[PROOF_OF_WORK] Task: "${task.title}" — ${proofNotes.trim()}${proofPhotoUrl ? ` [IMG:${proofPhotoUrl}]` : ''}`;
           await fetch('/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               to_id: task.admin_id,
-              text: `[PROOF_OF_WORK] Task: "${task.title}" — ${proofNotes.trim()}`,
+              text: finalMessage,
               task_id: id,
             }),
           });
@@ -286,9 +318,18 @@ export default function VolunteerDashboard() {
 
             <div className="form-group">
               <label className="form-label">Attach Photo Proof (Optional)</label>
-              <div style={{ border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
-                📷 Tap to capture or upload photo
-              </div>
+              {proofPhotoUrl ? (
+                <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={proofPhotoUrl} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => setProofPhotoUrl('')} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer' }}>✕</button>
+                </div>
+              ) : (
+                <label style={{ display: 'block', border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingProof} onChange={handleUploadProofPhoto} />
+                  {uploadingProof ? 'Uploading...' : '📷 Tap to capture or upload photo'}
+                </label>
+              )}
             </div>
 
             <div className="flex gap-3" style={{ marginTop: 24 }}>

@@ -134,16 +134,9 @@ export default function AdminProfilePage() {
             )}
           </div>
           <div className="flex gap-2" style={{ marginBottom: 20 }}>
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={handleRandomAvatar}
-              disabled={updatingAvatar}
-            >
-              {updatingAvatar ? '⟳ Modifying...' : '🎲 Random'}
-            </button>
             <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadPhoto} />
-              {updatingAvatar ? '⟳...' : '📁 Upload Pic'}
+              {updatingAvatar ? '⟳ Uploading...' : '📁 Upload Pic'}
             </label>
           </div>
           

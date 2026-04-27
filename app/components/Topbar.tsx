@@ -28,13 +28,12 @@ export default function Topbar({ title, subtitle, actions }: TopbarProps) {
       </div>
       <div className="topbar-actions">
         {actions}
-        <button className="topbar-icon-btn" id="topbar-notifications-btn" title="Notifications" onClick={handleNotificationClick}>
-          🔔
-          <span className="notification-dot" />
-        </button>
-        <button className="topbar-icon-btn" id="topbar-search-btn" title="Search">
-          🔍
-        </button>
+        {!(pathname.startsWith('/admin') || pathname.startsWith('/super-admin')) && (
+          <button className="topbar-icon-btn" id="topbar-notifications-btn" title="Notifications" onClick={handleNotificationClick}>
+            🔔
+            <span className="notification-dot" />
+          </button>
+        )}
       </div>
     </header>
   );

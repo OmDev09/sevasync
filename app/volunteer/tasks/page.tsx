@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import type { Task } from '../../../lib/supabase/database.types';
+import { createClient } from '@/lib/supabase/client';
 
 const PRIORITY_COLORS: Record<string, string> = {
   critical: 'var(--critical)', high: 'var(--high)', medium: 'var(--medium)', low: 'var(--low)',
@@ -20,6 +21,8 @@ export default function VolunteerTasksPage() {
   const [updating, setUpdating] = useState(false);
   const [showProofModal, setShowProofModal] = useState(false);
   const [proofNotes, setProofNotes] = useState('');
+  const [proofPhotoUrl, setProofPhotoUrl] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const fetchTasks = useCallback(async () => {
     if (!user) return;
@@ -37,6 +40,31 @@ export default function VolunteerTasksPage() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
+  const handleUploadProofPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingProof(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `proof-${user.id}-${Math.random()}.${fileExt}`;
+      
+      const uploadPromise = supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+      const timeoutPromise = new Promise<{error?: any}>((_, reject) => setTimeout(() => reject(new Error('Upload timed out. Please check your connection and try again.')), 15000));
+      
+      const { error: uploadErr } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+      if (uploadErr) throw uploadErr;
+      
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setProofPhotoUrl(publicUrl);
+    } catch (e: any) {
+      toastError('Upload failed', e.message || 'There was an error attaching your photo proof.');
+    } finally {
+      if (e.target) e.target.value = '';
+      setUploadingProof(false);
+    }
+  };
+
   const updateStatus = async (id: string, status: 'in_progress' | 'completed') => {
     setUpdating(true);
     try {
@@ -50,12 +78,13 @@ export default function VolunteerTasksPage() {
       
       // 2. If it's completed and there are proof notes, submit to the immutable Audit log via Messages table
       if (status === 'completed' && proofNotes.trim() && selected) {
+        const finalMessage = `[PROOF_OF_WORK] Task: "${selected.title}" — ${proofNotes.trim()}${proofPhotoUrl ? ` [IMG:${proofPhotoUrl}]` : ''}`;
         await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to_id: selected.admin_id,
-            text: `[PROOF_OF_WORK] Task: "${selected.title}" — ${proofNotes.trim()}`,
+            text: finalMessage,
             task_id: id
           })
         });
@@ -65,6 +94,7 @@ export default function VolunteerTasksPage() {
       if (selected?.id === id) setSelected(prev => prev ? { ...prev, status } : null);
       setShowProofModal(false);
       setProofNotes('');
+      setProofPhotoUrl('');
       success(status === 'completed' ? 'Proof Submitted! 🎉' : 'Task Started ▶️',
         status === 'completed' ? 'Your Completion Proof is pending Admin Verification.' : 'Keep it up!');
     } catch {
@@ -259,9 +289,18 @@ export default function VolunteerTasksPage() {
             
             <div className="form-group">
               <label className="form-label">Attach Photo Proof (Optional)</label>
-              <div style={{ border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
-                📷 Tap to capture or upload photo
-              </div>
+              {proofPhotoUrl ? (
+                <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={proofPhotoUrl} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => setProofPhotoUrl('')} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer' }}>✕</button>
+                </div>
+              ) : (
+                <label style={{ display: 'block', border: '1px dashed var(--bg-border-hover)', padding: '16px', borderRadius: 'var(--radius-sm)', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-elevated)', color: 'var(--brand-primary)' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingProof} onChange={handleUploadProofPhoto} />
+                  {uploadingProof ? 'Uploading...' : '📷 Tap to capture or upload photo'}
+                </label>
+              )}
             </div>
 
             <div className="flex gap-3" style={{ marginTop: 24 }}>

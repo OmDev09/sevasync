@@ -11,7 +11,6 @@ type ProfileData = {
   email: string;
   phone: string | null;
   region: string | null;
-  region: string | null;
   skills: string[];
   status: string;
   avatar_url: string | null;
@@ -189,22 +188,9 @@ export default function VolunteerProfilePage() {
                 )}
               </div>
               <div className="flex gap-2 justify-center" style={{ marginBottom: 20 }}>
-                <button className="btn btn-secondary btn-sm" disabled={saving} onClick={async () => {
-                  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`;
-                  setAvatarUrl(url);
-                  if (!editing) {
-                    setSaving(true);
-                    await fetch('/api/auth/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar_url: url }) });
-                    loadProfile();
-                    setSaving(false);
-                    success('Avatar Updated ✅', 'Your new avatar is set.');
-                  }
-                 }}>
-                  🎲 Random
-                </button>
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadPhoto} disabled={saving} />
-                  {saving ? '⟳...' : '📁 Upload Pic'}
+                  {saving ? '⟳ Uploading...' : '📁 Upload Pic'}
                 </label>
               </div>
               <div style={{ fontWeight: 700, fontSize: '1.125rem', marginBottom: 4 }}>{data.name}</div>

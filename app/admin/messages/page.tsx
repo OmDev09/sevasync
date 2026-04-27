@@ -412,11 +412,24 @@ function getTimeStr(iso: string) {
 
 function formatMessageText(text: string) {
   if (text.startsWith('[PROOF_OF_WORK]')) {
-    const body = text.replace('[PROOF_OF_WORK]', '').trim();
+    let body = text.replace('[PROOF_OF_WORK]', '').trim();
+    let imgUrl = null;
+    const match = body.match(/\[IMG:(.+?)\]/);
+    if (match) {
+      imgUrl = match[1];
+      body = body.replace(match[0], '').trim();
+    }
+    
     return (
       <div>
         <span style={{ display: 'inline-block', background: 'rgba(99,102,241,0.15)', color: 'var(--brand-primary-light)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>📋 PROOF OF WORK</span>
         <div style={{ marginTop: 4 }}>{body}</div>
+        {imgUrl && (
+          <div style={{ marginTop: 8, borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--bg-border)' }}>
+             {/* eslint-disable-next-line @next/next/no-img-element */}
+             <img src={imgUrl} alt="Proof" style={{ width: '100%', maxWidth: 260, display: 'block' }} />
+          </div>
+        )}
       </div>
     );
   }

@@ -361,42 +361,55 @@ export default function TasksPage() {
 
             {viewTask.status === 'completed' && (
               <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-sm)', padding: 16, marginBottom: 20 }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-accent)', marginBottom: 12 }}>
+                  🛡️ PROOF OF WORK EVIDENCE
+                </div>
+                
+                {proofLogs.length === 0 ? (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No proof notes found for this task.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {proofLogs.map(log => {
+                      let text = log.text.replace('[PROOF_OF_WORK]', '').trim();
+                      let imgUrl = null;
+                      const match = text.match(/\[IMG:(.+?)\]/);
+                      if (match) {
+                        imgUrl = match[1];
+                        text = text.replace(match[0], '').trim();
+                      }
+                      return (
+                        <div key={log.id} style={{ background: 'rgba(99,102,241,0.05)', padding: 12, borderRadius: 6, fontSize: '0.875rem', borderLeft: '3px solid var(--brand-primary)' }}>
+                          <div style={{ lineHeight: 1.5 }}>{text}</div>
+                          {imgUrl && (
+                            <div style={{ marginTop: 10, borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--bg-border)' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={imgUrl} alt="Proof of Work" style={{ width: '100%', display: 'block' }} />
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 8 }}>
+                            Submitted: {new Date(log.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {hasBeenVerified ? (
-                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>✅</div>
+                  <div style={{ textAlign: 'center', padding: '16px 0 6px 0', marginTop: 16, borderTop: '1px solid var(--bg-border)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 4 }}>✅</div>
                     <h4 style={{ color: 'var(--low)', margin: 0, fontSize: '1rem' }}>Verified & Accepted</h4>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 4 }}>This task's proof of work has been thoroughly verified and archived.</p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: 4 }}>This task has been fully verified and officially closed.</p>
                   </div>
                 ) : (
-                  <>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-accent)', marginBottom: 12 }}>
-                      🛡️ PROOF OF WORK REQUIRED
-                    </div>
-                    
-                    {proofLogs.length === 0 ? (
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No proof notes found for this task.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {proofLogs.map(log => (
-                          <div key={log.id} style={{ background: 'rgba(99,102,241,0.05)', padding: 12, borderRadius: 6, fontSize: '0.875rem', borderLeft: '3px solid var(--brand-primary)' }}>
-                            {log.text.replace('[PROOF_OF_WORK]', '').trim()}
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6 }}>
-                              Submitted: {new Date(log.created_at).toLocaleString()}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2" style={{ marginTop: 20 }}>
-                      <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => handleVerifyProof(true)} disabled={verifying}>
-                        ✅ Accept Verification
-                      </button>
-                      <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => handleVerifyProof(false)} disabled={verifying}>
-                        ❌ Reject & Reopen Task
-                      </button>
-                    </div>
-                  </>
+                  <div className="flex gap-2" style={{ marginTop: 20 }}>
+                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => handleVerifyProof(true)} disabled={verifying}>
+                      ✅ Accept Verification
+                    </button>
+                    <button className="btn btn-danger" style={{ flex: 1 }} onClick={() => handleVerifyProof(false)} disabled={verifying}>
+                      ❌ Reject & Reopen Task
+                    </button>
+                  </div>
                 )}
               </div>
             )}
