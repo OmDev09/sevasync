@@ -105,6 +105,7 @@ const roles = [
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [showAppModal, setShowAppModal] = useState(false);
   const { theme, toggleTheme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -482,6 +483,144 @@ export default function LandingPage() {
           </span>
         </div>
       </footer>
+
+      {/* FAB: Download Mobile App */}
+      <button
+        onClick={() => setShowAppModal(true)}
+        className="animate-fade-in"
+        style={{
+          position: 'fixed',
+          bottom: 32,
+          right: 32,
+          padding: '12px 24px',
+          borderRadius: 'var(--radius-full)',
+          background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-accent))',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.2)',
+          boxShadow: '0 8px 32px rgba(18,154,156,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontSize: '1rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          zIndex: 999,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = '0 12px 36px rgba(18,154,156,0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(18,154,156,0.3)';
+        }}
+        title="Download Volunteer App"
+      >
+        <div style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          ⬇️
+        </div>
+        Get Volunteer's App
+      </button>
+
+      {/* DOWNLOAD MODAL */}
+      {showAppModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAppModal(false);
+          }}
+        >
+          <div
+            className="card animate-fade-in"
+            style={{
+              width: '100%',
+              maxWidth: 440,
+              padding: 0,
+              textAlign: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+              border: '1px solid var(--bg-border)'
+            }}
+          >
+            {/* Header graphic */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(18,154,156,0.06) 0%, rgba(139,92,246,0.06) 100%)', padding: '40px 24px 30px', position: 'relative' }}>
+               <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at top right, var(--brand-accent) 0%, transparent 60%)', opacity: 0.15 }}></div>
+               <button
+                 onClick={() => setShowAppModal(false)}
+                 style={{
+                   position: 'absolute', top: 16, right: 16,
+                   background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)',
+                   width: 32, height: 32, borderRadius: '50%', fontSize: '0.875rem',
+                   color: 'var(--text-primary)', cursor: 'pointer', zIndex: 10,
+                   display: 'flex', alignItems: 'center', justifyContent: 'center'
+                 }}
+               >
+                 ✕
+               </button>
+               <div style={{ width: 84, height: 84, background: 'var(--bg-elevated)', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--bg-border)', position: 'relative' }}>
+                  <img src="/Sevasync_Logo.svg" alt="App Logo" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+                  <div style={{ position: 'absolute', bottom: -6, right: -6, background: 'var(--brand-primary)', border: '2px solid var(--bg-elevated)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>✨</div>
+               </div>
+               <h2 className="h4" style={{ marginBottom: 6, position: 'relative' }}>SevaSync Volunteer</h2>
+               <div style={{ display: 'flex', justifyContent: 'center', gap: 10, alignItems: 'center', position: 'relative' }}>
+                 <div className="badge badge-brand" style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--low)', border: '1px solid rgba(34,197,94,0.3)', padding: '2px 8px' }}>🤖 Android</div>
+                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>•</span>
+                 <span style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>v1.0 (Latest)</span>
+               </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px 32px 32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 20px', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', marginBottom: 24, border: '1px solid var(--bg-border-hover)' }}>
+                 <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Size</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>~50 MB</div>
+                 </div>
+                 <div style={{ width: 1, background: 'var(--bg-border)' }} />
+                 <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Requires</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>Android 8.0+</div>
+                 </div>
+                 <div style={{ width: 1, background: 'var(--bg-border)' }} />
+                 <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.05em' }}>Type</div>
+                    <div style={{ fontWeight: 700, color: 'var(--brand-primary)', fontSize: '0.9375rem' }}>.APK</div>
+                 </div>
+              </div>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 24, lineHeight: 1.6 }}>
+                Receive instant dispatch alerts, seamlessly navigate directly to critical sites, and easily upload live photo proof right from the field.
+              </p>
+              
+              <a
+                href="https://github.com/Premdev23/sevasync-volunteer-app/releases/download/v1.0/SevaSync-Volunteer-v1.apk"
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', padding: '16px', fontSize: '1.0625rem', fontWeight: 700, boxShadow: 'var(--shadow-md)' }}
+              >
+                <span>Download APK File</span>
+                <span style={{ fontSize: '1.125rem' }}>⬇️</span>
+              </a>
+              
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 16, lineHeight: 1.5 }}>
+                🔒 Secure package sourced directly from GitHub Releases.<br/>
+                You may need to allow "Install from Unknown Sources" on your device.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
