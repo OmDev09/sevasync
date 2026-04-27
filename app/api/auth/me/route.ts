@@ -24,7 +24,7 @@ export async function PATCH(req: Request) {
   if (authError || !user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const body = await req.json();
-  const allowed = ['name', 'phone', 'region', 'skills', 'available_days', 'status'];
+  const allowed = ['name', 'phone', 'region', 'skills', 'available_days', 'status', 'avatar_url'];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];

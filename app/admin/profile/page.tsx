@@ -13,6 +13,7 @@ export default function AdminProfilePage() {
   const [loading, setLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [updatingPwd, setUpdatingPwd] = useState(false);
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
 
   if (!profile) return null;
 
@@ -38,6 +39,62 @@ export default function AdminProfilePage() {
       toastError('Update Failed', e.message);
     } finally {
       setUpdatingPwd(false);
+    }
+  };
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUpdatingAvatar(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+        
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const res = await fetch('/api/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: publicUrl }),
+      });
+      if (!res.ok) throw new Error('Failed to save to database');
+      
+      if (profile) profile.avatar_url = publicUrl;
+      success('Photo Uploaded', 'Your profile picture was successfully updated.');
+    } catch (err: any) {
+      toastError('Upload failed', err.message || 'Error uploading photo');
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  };
+
+  const handleRandomAvatar = async () => {
+    setUpdatingAvatar(true);
+    try {
+      const newAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`;
+      const res = await fetch('/api/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: newAvatarUrl }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      
+      // Update local profile state
+      if (profile) profile.avatar_url = newAvatarUrl;
+      success('Avatar Updated ✅', 'Your new profile photo looks great!');
+    } catch {
+      toastError('Update Failed', 'Failed to update avatar.');
+    } finally {
+      setUpdatingAvatar(false);
     }
   };
 
@@ -67,10 +124,29 @@ export default function AdminProfilePage() {
 
       <div className="grid grid-cols-3 gap-6" style={{ alignItems: 'start' }}>
         {/* Left Column: Quick Profile Summary */}
-        <div className="card" style={{ padding: 32, textAlign: 'center', gridColumn: 'span 1' }}>
-          <div className="avatar" style={{ width: 80, height: 80, fontSize: '2rem', margin: '0 auto 16px', background: 'var(--brand-accent-light)', color: 'var(--brand-accent)' }}>
-            {initials}
+        <div className="card" style={{ padding: 32, textAlign: 'center', gridColumn: 'span 1', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="avatar" style={{ width: 88, height: 88, fontSize: '2rem', margin: '0 auto 16px', background: profile.avatar_url ? 'transparent' : 'var(--brand-accent-light)', color: 'var(--brand-accent)', border: profile.avatar_url ? 'none' : '1px solid var(--bg-border)' }}>
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            ) : (
+              initials
+            )}
           </div>
+          <div className="flex gap-2" style={{ marginBottom: 20 }}>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={handleRandomAvatar}
+              disabled={updatingAvatar}
+            >
+              {updatingAvatar ? '⟳ Modifying...' : '🎲 Random'}
+            </button>
+            <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadPhoto} />
+              {updatingAvatar ? '⟳...' : '📁 Upload Pic'}
+            </label>
+          </div>
+          
           <h2 className="h3" style={{ marginBottom: 4 }}>{profile.name}</h2>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>{profile.email}</div>
           

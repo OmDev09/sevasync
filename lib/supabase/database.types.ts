@@ -22,6 +22,7 @@ export interface Profile {
   status: string;
   admin_id: string | null;
   available_days: string[] | null;
+  avatar_url: string | null;
   joined_at: string;
   last_active: string;
 }

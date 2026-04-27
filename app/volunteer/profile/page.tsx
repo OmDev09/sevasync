@@ -11,8 +11,10 @@ type ProfileData = {
   email: string;
   phone: string | null;
   region: string | null;
+  region: string | null;
   skills: string[];
   status: string;
+  avatar_url: string | null;
   available_days: string[] | null;
   joined_at: string;
 };
@@ -29,6 +31,7 @@ export default function VolunteerProfilePage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [formFields, setFormFields] = useState({ name: '', email: '', phone: '', region: '' });
+  const [avatarUrl, setAvatarUrl] = useState('');
   
   const { theme, toggleTheme } = useTheme();
   const [newPassword, setNewPassword] = useState('');
@@ -44,6 +47,7 @@ export default function VolunteerProfilePage() {
       if (p) {
         setData(p);
         setSkills(p.skills || []);
+        setAvatarUrl(p.avatar_url || '');
         setFormFields({ name: p.name, email: p.email, phone: p.phone || '', region: p.region || '' });
         const avail: Record<string, boolean> = {};
         DAY_KEYS.forEach(d => { avail[d] = (p.available_days || []).includes(d); });
@@ -69,6 +73,7 @@ export default function VolunteerProfilePage() {
           name: formFields.name,
           phone: formFields.phone || null,
           region: formFields.region || null,
+          avatar_url: avatarUrl || null,
           skills,
           available_days,
         }),
@@ -79,6 +84,47 @@ export default function VolunteerProfilePage() {
       loadProfile();
     } catch {
       toastError('Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    // Auto-save state
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+        
+      if (uploadErr) throw uploadErr;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setAvatarUrl(publicUrl);
+      
+      // If currently not editing, immediately apply the change to the DB
+      if (!editing) {
+         await fetch('/api/auth/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_url: publicUrl }),
+         });
+         loadProfile();
+         success('Photo Uploaded', 'Profile picture successfully changed.');
+      }
+
+    } catch (err: any) {
+      toastError('Upload failed', err.message || 'Error uploading photo');
     } finally {
       setSaving(false);
     }
@@ -134,7 +180,33 @@ export default function VolunteerProfilePage() {
           {/* Left — Personal Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="card" style={{ textAlign: 'center', padding: '28px' }}>
-              <div className="avatar" style={{ width: 72, height: 72, fontSize: '1.5rem', margin: '0 auto 14px' }}>{initials}</div>
+              <div className="avatar" style={{ width: 72, height: 72, fontSize: '1.5rem', margin: '0 auto 14px', background: avatarUrl ? 'transparent' : 'var(--bg-elevated)', border: avatarUrl ? 'none' : '1px solid var(--bg-border)' }}>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="flex gap-2 justify-center" style={{ marginBottom: 20 }}>
+                <button className="btn btn-secondary btn-sm" disabled={saving} onClick={async () => {
+                  const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`;
+                  setAvatarUrl(url);
+                  if (!editing) {
+                    setSaving(true);
+                    await fetch('/api/auth/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar_url: url }) });
+                    loadProfile();
+                    setSaving(false);
+                    success('Avatar Updated ✅', 'Your new avatar is set.');
+                  }
+                 }}>
+                  🎲 Random
+                </button>
+                <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadPhoto} disabled={saving} />
+                  {saving ? '⟳...' : '📁 Upload Pic'}
+                </label>
+              </div>
               <div style={{ fontWeight: 700, fontSize: '1.125rem', marginBottom: 4 }}>{data.name}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 10 }}>Volunteer · {data.region || 'No region'}</div>
               <div className="flex items-center justify-center gap-2">
