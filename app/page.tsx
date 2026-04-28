@@ -110,10 +110,26 @@ export default function LandingPage() {
   const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const { theme, toggleTheme, setTheme } = useTheme();
 
-  const handleJoinSubmit = (e: React.FormEvent) => {
+  const handleJoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus('submitting');
-    setTimeout(() => setFormStatus('success'), 1500);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const data = Object.fromEntries(formData.entries());
+    data.role = joinType || '';
+
+    try {
+      const res = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error();
+      setFormStatus('success');
+    } catch {
+      setFormStatus('idle');
+      alert('Failed to submit application. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -518,39 +534,39 @@ export default function LandingPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
                     <div>
                       <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Full Name *</label>
-                      <input type="text" className="form-input" required placeholder="John Doe" />
+                      <input type="text" name="name" className="form-input" required placeholder="John Doe" />
                     </div>
                     <div>
                       <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Email Address *</label>
-                      <input type="email" className="form-input" required placeholder="john@example.com" />
+                      <input type="email" name="email" className="form-input" required placeholder="john@example.com" />
                     </div>
                   </div>
 
                   <div>
                     <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Phone Number *</label>
-                    <input type="tel" className="form-input" required placeholder="+1 (555) 000-0000" />
+                    <input type="tel" name="phone" className="form-input" required placeholder="+1 (555) 000-0000" />
                   </div>
 
                   {joinType === 'volunteer' ? (
                     <>
                       <div>
                         <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Location / City *</label>
-                        <input type="text" className="form-input" required placeholder="Where are you located?" />
+                        <input type="text" name="location" className="form-input" required placeholder="Where are you located?" />
                       </div>
                       <div>
                         <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Primary Skills / Experience *</label>
-                        <input type="text" className="form-input" required placeholder="e.g. Medical Training, Heavy Duty Driving, Logistics" />
+                        <input type="text" name="skills" className="form-input" required placeholder="e.g. Medical Training, Heavy Duty Driving, Logistics" />
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
                         <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Organization / NGO Name *</label>
-                        <input type="text" className="form-input" required placeholder="Enter your organization name" />
+                        <input type="text" name="organization" className="form-input" required placeholder="Enter your organization name" />
                       </div>
                       <div>
                         <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Why do you want to be an Admin? *</label>
-                        <textarea className="form-input" required rows={3} placeholder="Briefly describe your use case and community impact goals..." />
+                        <textarea className="form-input" name="reason" required rows={3} placeholder="Briefly describe your use case and community impact goals..." />
                       </div>
                     </>
                   )}

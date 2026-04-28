@@ -21,6 +21,7 @@ interface SidebarProps {
 const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin', icon: '📊', label: 'Overview' },
   { href: '/super-admin/admins', icon: '👥', label: 'Admin Management' },
+  { href: '/super-admin/applications', icon: '📩', label: 'Applications' },
   { href: '/super-admin/analytics', icon: '📈', label: 'Global Analytics' },
   { href: '/super-admin/map', icon: '🗺️', label: 'Global Map' },
   { href: '/super-admin/reports', icon: '📑', label: 'Admin Reports' },
