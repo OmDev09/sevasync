@@ -181,9 +181,9 @@ export default function VolunteerMessagesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-0" style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 2fr', background: 'var(--bg-card)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {/* Admin Thread list */}
-        <div style={{ borderRight: '1px solid var(--bg-border)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ borderRight: '1px solid var(--bg-border)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bg-border)' }}>
             <input
               className="form-input"

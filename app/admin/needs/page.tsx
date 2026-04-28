@@ -28,7 +28,7 @@ export default function NeedsPage() {
   const [needs, setNeeds] = useState<Need[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [filter, setFilter] = useState({ type: 'All', severity: 'All' });
+  const [filter, setFilter] = useState({ type: 'All', severity: 'All', status: 'open' });
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
@@ -94,9 +94,23 @@ export default function NeedsPage() {
     }
   };
 
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to completely delete "${title}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/needs/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      setNeeds(prev => prev.filter(n => n.id !== id));
+      success('Deleted 🗑️', `"${title}" has been permanently removed.`);
+    } catch {
+      toastError('Delete failed', 'Could not delete the need. Ensure you have the right permissions.');
+    }
+  };
+
   const filtered = needs.filter(n => {
     if (filter.type !== 'All' && n.type !== filter.type) return false;
     if (filter.severity !== 'All' && n.severity !== filter.severity) return false;
+    if (filter.status === 'open' && n.status === 'resolved') return false;
+    if (filter.status === 'resolved' && n.status !== 'resolved') return false;
     if (search && !n.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -158,6 +172,12 @@ export default function NeedsPage() {
             onChange={e => setFilter(f => ({ ...f, severity: e.target.value }))} id="needs-severity-filter">
             {SEVERITIES.map(s => <option key={s} value={s}>{s === 'All' ? 'All Severities' : s}</option>)}
           </select>
+          <select className="form-select" style={{ maxWidth: 160 }} value={filter.status}
+            onChange={e => setFilter(f => ({ ...f, status: e.target.value }))} id="needs-status-filter">
+            <option value="open">Open Needs</option>
+            <option value="resolved">Resolved</option>
+            <option value="all">All Status</option>
+          </select>
         </div>
       </div>
 
@@ -174,7 +194,7 @@ export default function NeedsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(n => (
-            <NeedCard key={n.id} need={n} onResolve={handleResolve} onAiMatch={setAiMatchNeed} />
+            <NeedCard key={n.id} need={n} onResolve={handleResolve} onDelete={handleDelete} onAiMatch={setAiMatchNeed} />
           ))}
           {filtered.length === 0 && (
             <div className="empty-state">
@@ -277,9 +297,10 @@ export default function NeedsPage() {
   );
 }
 
-function NeedCard({ need, onResolve, onAiMatch }: {
+function NeedCard({ need, onResolve, onDelete, onAiMatch }: {
   need: Need;
   onResolve: (id: string, title: string) => void;
+  onDelete: (id: string, title: string) => void;
   onAiMatch: (need: Need) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -330,6 +351,9 @@ function NeedCard({ need, onResolve, onAiMatch }: {
                 style={{ color: 'var(--low)' }}
                 onClick={() => onResolve(need.id, need.title)}>✓ Resolve</button>
             )}
+            <button className="btn btn-ghost btn-sm" id={`delete-need-${need.id}-btn`}
+              style={{ color: 'var(--critical)' }}
+              onClick={() => onDelete(need.id, need.title)}>🗑️ Delete</button>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Need } from '../../../lib/supabase/database.types';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -176,6 +176,7 @@ export default function AdminMapPage() {
       markersRef.current = [];
 
       const filtered = needs.filter(n => {
+        if (n.status === 'resolved') return false;
         if (filterType !== 'all' && n.type.toLowerCase() !== filterType) return false;
         if (filterSeverity !== 'all' && n.severity !== filterSeverity) return false;
         return true;
@@ -259,11 +260,14 @@ export default function AdminMapPage() {
     .sort((a, b) => b[1].topScore - a[1].topScore)
     .slice(0, 9);
 
-  const activeNeeds = needs.filter(n => {
-    if (filterType !== 'all' && n.type.toLowerCase() !== filterType) return false;
-    if (filterSeverity !== 'all' && n.severity !== filterSeverity) return false;
-    return true;
-  });
+  const activeNeeds = useMemo(() => {
+    return needs.filter(n => {
+      if (n.status === 'resolved') return false;
+      if (filterType !== 'all' && n.type.toLowerCase() !== filterType) return false;
+      if (filterSeverity !== 'all' && n.severity !== filterSeverity) return false;
+      return true;
+    });
+  }, [needs, filterType, filterSeverity]);
 
   const [mappedCount, setMappedCount] = useState(0);
   const [unmappedCount, setUnmappedCount] = useState(0);
