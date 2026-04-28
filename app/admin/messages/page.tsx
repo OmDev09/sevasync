@@ -11,6 +11,7 @@ type MessageThread = {
   lastMessage: string;
   lastTime: string;
   unreadCount: number;
+  role: string;
 };
 
 type ChatMessage = {
@@ -37,24 +38,27 @@ export default function MessagesPage() {
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastText, setBroadcastText] = useState('');
   const [broadcastSending, setBroadcastSending] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all volunteer profiles to build thread list
   const fetchThreads = useCallback(async () => {
     setLoadingThreads(true);
     try {
-      const [volRes, msgRes] = await Promise.all([
+      const [volRes, msgRes, adminRes] = await Promise.all([
         fetch('/api/volunteers'),
         fetch('/api/messages'),
+        fetch('/api/admins')
       ]);
       const volData = await volRes.json();
       const msgData = await msgRes.json();
+      const adminData = await adminRes.json();
 
       const volunteers = volData.volunteers || [];
+      const admins = (adminData.admins || []).filter((a: { id: string }) => a.id !== user?.id);
+      const allProfiles = [...volunteers, ...admins];
       const allMessages = (msgData.messages || []) as ChatMessage[];
 
-      // Build threads from volunteers and latest message per volunteer
-      const threadList: MessageThread[] = volunteers.map((v: { id: string; name: string }) => {
+      // Build threads from profiles and latest message
+      const threadList: MessageThread[] = allProfiles.map((v: { id: string; name: string; role: string }) => {
         const threadMsgs = allMessages.filter(
           (m: ChatMessage) => m.from_id === v.id || m.to_id === v.id
         );
@@ -67,9 +71,13 @@ export default function MessagesPage() {
           (m: ChatMessage) => m.to_id === user?.id && !m.read
         ).length;
 
+        // Only show threads with actual messages for admins, but show all volunteers
+        // Or actually, show all profiles if we want. But let's show all profiles so they can initiate.
+
         return {
           userId: v.id,
           userName: v.name,
+          role: v.role || 'volunteer',
           initials: v.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2),
           lastMessage: latest?.text || 'No messages yet',
           lastTime: latest ? getTimeStr(latest.created_at) : '',
@@ -77,14 +85,18 @@ export default function MessagesPage() {
         };
       });
 
+      // Filter out admins/super-admins that we have no messages with, to avoid clutter
+      // Volunteers are kept so we can message them anytime.
+      const activeThreadList = threadList.filter(t => t.role === 'volunteer' || t.lastMessage !== 'No messages yet');
+
       // Sort: unread first, then by last message time
-      threadList.sort((a, b) => {
+      activeThreadList.sort((a, b) => {
         if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
         if (b.unreadCount > 0 && a.unreadCount === 0) return 1;
         return 0;
       });
 
-      setThreads(threadList);
+      setThreads(activeThreadList);
     } catch {
       // silent fail
     } finally {
@@ -128,10 +140,13 @@ export default function MessagesPage() {
     }
   }, [user, toastError]);
 
-  // Scroll to bottom when messages change
+  // Auto-select first thread if none is selected
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (threads.length > 0 && !selectedThread) {
+      loadMessages(threads[0]);
+    }
+  }, [threads, selectedThread, loadMessages]);
+
 
   const sendMessage = async () => {
     if (!composing.trim() || !selectedThread || !user) return;
@@ -286,22 +301,24 @@ export default function MessagesPage() {
                 <div className="avatar avatar-sm" style={{ width: 36, height: 36 }}>{selectedThread.initials}</div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{selectedThread.userName}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Volunteer</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{selectedThread.role}</div>
                 </div>
               </div>
 
               {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div ref={chatContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: messages.length > 0 && !loadingMessages ? 'column-reverse' : 'column', gap: 10 }}>
                 {loadingMessages ? (
                   <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Loading messages...</div>
                 ) : messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>💬</div>
-                    No messages yet. Start the conversation!
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 8 }}>💬</div>
+                      No messages yet. Start the conversation!
+                    </div>
                   </div>
                 ) : (
-                  messages.map(msg => {
-                    const isMine = msg.from_id === user?.id;
+                  [...messages].reverse().map(msg => {
+                      const isMine = msg.from_id === user?.id;
                     return (
                       <div key={msg.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
                         <div
@@ -322,7 +339,6 @@ export default function MessagesPage() {
                     );
                   })
                 )}
-                <div ref={chatEndRef} />
               </div>
 
               {/* Compose */}
@@ -453,6 +469,23 @@ function formatMessageText(text: string) {
   }
   if (text.startsWith('📢 BROADCAST:')) {
     return <span><strong style={{ color: 'var(--brand-warm)' }}>{text.split('📢 BROADCAST:')[1]}</strong></span>;
+  }
+  if (text.startsWith('[REPORT_REQUEST]')) {
+    const body = text.replace('[REPORT_REQUEST]', '').trim();
+    return (
+      <div>
+        <span style={{ display: 'inline-block', background: 'rgba(245,158,11,0.15)', color: 'var(--brand-warm)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>📑 DATA REQUEST</span>
+        <div style={{ marginTop: 4 }}>{body}</div>
+      </div>
+    );
+  }
+  if (text.startsWith('[AI_REPORT]')) {
+    return (
+      <div>
+        <span style={{ display: 'inline-block', background: 'rgba(18,154,156,0.15)', color: 'var(--brand-primary)', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginBottom: 6 }}>🤖 AI REPORT</span>
+        <div style={{ marginTop: 4 }}><em>Report Document Attached</em></div>
+      </div>
+    );
   }
   return text;
 }

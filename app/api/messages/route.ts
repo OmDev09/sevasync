@@ -62,3 +62,25 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ message: data }, { status: 201 });
 }
+
+// DELETE /api/messages — bulk delete messages
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { ids } = await request.json().catch(() => ({ ids: [] }));
+  
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: 'An array of message IDs is required' }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from('messages')
+    .delete()
+    .in('id', ids)
+    .or(`to_id.eq.${user.id},from_id.eq.${user.id}`);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

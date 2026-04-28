@@ -23,6 +23,7 @@ const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/admins', icon: '👥', label: 'Admin Management' },
   { href: '/super-admin/analytics', icon: '📈', label: 'Global Analytics' },
   { href: '/super-admin/map', icon: '🗺️', label: 'Global Map' },
+  { href: '/super-admin/reports', icon: '📑', label: 'Admin Reports' },
   { href: '/super-admin/activity', icon: '📋', label: 'Activity Log' },
   { href: '/super-admin/settings', icon: '⚙️', label: 'System Config' },
   { href: '/super-admin/profile', icon: '👤', label: 'General / Profile' },

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 // POST /api/messages/read — mark messages as read
 export async function POST(request: Request) {
@@ -14,7 +15,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ updated: 0 });
   }
 
-  const { error } = await supabase
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminClient = serviceRoleKey 
+    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
+    : supabase;
+
+  const { error } = await adminClient
     .from('messages')
     .update({ read: true })
     .in('id', ids)

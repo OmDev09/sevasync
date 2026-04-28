@@ -34,7 +34,7 @@ export default function VolunteerMessagesPage() {
   const [composing, setComposing] = useState('');
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch all admin profiles to build the thread list
   const fetchThreads = useCallback(async () => {
@@ -125,10 +125,12 @@ export default function VolunteerMessagesPage() {
     }
   }, [user, toastError]);
 
-  // Scroll to bottom when messages change
+  // Auto-select first thread if none is selected
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (threads.length > 0 && !selectedThread) {
+      loadMessages(threads[0]);
+    }
+  }, [threads, selectedThread, loadMessages]);
 
   const sendMessage = async () => {
     if (!composing.trim() || !selectedThread || !user) return;
@@ -263,17 +265,19 @@ export default function VolunteerMessagesPage() {
               </div>
 
               {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div ref={chatContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: messages.length > 0 && !loadingMessages ? 'column-reverse' : 'column', gap: 10 }}>
                 {loadingMessages ? (
                   <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Loading...</div>
                 ) : messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>💬</div>
-                    Need help or supplies? Message the admin team here.
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: 8 }}>💬</div>
+                      Need help or supplies? Message the admin team here.
+                    </div>
                   </div>
                 ) : (
-                  messages.map(msg => {
-                    const isMine = msg.from_id === user?.id;
+                  [...messages].reverse().map(msg => {
+                      const isMine = msg.from_id === user?.id;
                     return (
                       <div key={msg.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
                         <div
@@ -296,7 +300,6 @@ export default function VolunteerMessagesPage() {
                     );
                   })
                 )}
-                <div ref={chatEndRef} />
               </div>
 
               {/* Compose */}

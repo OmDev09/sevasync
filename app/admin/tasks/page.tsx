@@ -39,6 +39,10 @@ export default function TasksPage() {
   const [verifying, setVerifying] = useState(false);
   const [prefillApplied, setPrefillApplied] = useState(false);
 
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState<string | null>(null);
+  const [sendingReport, setSendingReport] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,6 +108,19 @@ export default function TasksPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    setTasks(ts => ts.filter(t => t.id !== taskId));
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      success('Task Deleted ✅', 'The task was successfully removed.');
+    } catch {
+      fetchData();
+      toastError('Failed to delete task');
+    }
+  };
+
   const handleCreate = async () => {
     if (!form.title) { toastError('Validation', 'Title is required'); return; }
     setSaving(true);
@@ -135,6 +152,189 @@ export default function TasksPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleGenerateReport = async () => {
+    setGeneratingReport(true);
+    try {
+      const completedTasks = tasks.filter(t => t.status === 'completed');
+      const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+      const assignedTasks = tasks.filter(t => t.status === 'assigned');
+      const unassignedTasks = tasks.filter(t => t.status === 'unassigned');
+      const criticalTasks = tasks.filter(t => t.priority === 'critical');
+      
+      const proofsPromises = completedTasks.map(t => fetch(`/api/messages?task_id=${t.id}`).then(res => res.json()).catch(() => ({ messages: [] })));
+      const proofsResults = await Promise.all(proofsPromises);
+
+      const getVolName = (vid: string | null) => {
+         if (!vid) return 'Unassigned';
+         const v = volunteers.find(vol => vol.id === vid);
+         return v ? v.name : 'Unknown Volunteer';
+      };
+
+      const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+      let html = `
+        <div style="font-family: 'Inter', sans-serif; color: #1f2937; max-width: 800px; margin: 0 auto; line-height: 1.6; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <div style="border-bottom: 3px solid #129A9C; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="color: #129A9C; margin: 0 0 8px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Monthly Operational Update</h1>
+            <div style="color: #6b7280; font-size: 14px; font-weight: 500;">
+              <strong>Reporting Period:</strong> ${monthName} | <strong>Generated:</strong> ${currentDate}
+            </div>
+          </div>
+
+          <!-- Executive Summary -->
+          <div style="background: #f8fafc; border-left: 4px solid #F49C27; padding: 20px; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
+            <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #1e293b;">Executive Summary</h2>
+            <p style="margin: 0; font-size: 14px; color: #475569;">
+              This month, the operational team managed a total of <strong>${tasks.length}</strong> tasks across the region. 
+              We successfully resolved <strong>${completedTasks.length}</strong> operations, achieving a completion rate of <strong>${Math.round((completedTasks.length / (tasks.length || 1)) * 100)}%</strong>. 
+              Currently, there are <strong>${criticalTasks.length}</strong> critical priority tasks logged, requiring immediate oversight.
+            </p>
+          </div>
+
+          <!-- Analytics Grid -->
+          <h2 style="font-size: 18px; color: #1e293b; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Operational Metrics</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 30px;">
+            <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #334155;">${tasks.length}</div>
+              <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total</div>
+            </div>
+            <div style="background: rgba(16,185,129,0.1); padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #059669;">${completedTasks.length}</div>
+              <div style="font-size: 12px; color: #10b981; font-weight: 600; text-transform: uppercase;">Completed</div>
+            </div>
+            <div style="background: rgba(245,158,11,0.1); padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #d97706;">${inProgressTasks.length}</div>
+              <div style="font-size: 12px; color: #f59e0b; font-weight: 600; text-transform: uppercase;">In Progress</div>
+            </div>
+            <div style="background: rgba(239,68,68,0.1); padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${unassignedTasks.length}</div>
+              <div style="font-size: 12px; color: #ef4444; font-weight: 600; text-transform: uppercase;">Unassigned</div>
+            </div>
+          </div>
+
+          <!-- Completed Tasks Detail -->
+          <h2 style="font-size: 18px; color: #1e293b; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Completed Operations & Evidence</h2>
+      `;
+
+      if (completedTasks.length === 0) {
+        html += `<p style="color: #64748b; font-size: 14px; font-style: italic;">No completed tasks recorded in this period.</p>`;
+      } else {
+        completedTasks.forEach((t, index) => {
+          const proofs = (proofsResults[index].messages || []).filter((m: any) => m.text.startsWith('[PROOF_OF_WORK]'));
+          const volunteerName = getVolName(t.volunteer_id);
+          
+          html += `
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 700;">${index + 1}. ${t.title}</h3>
+                <span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase;">${t.type}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: #475569; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 6px;">
+                <div><strong>Priority:</strong> <span style="text-transform: capitalize;">${t.priority}</span></div>
+                <div><strong>Location:</strong> ${t.location || 'N/A'}</div>
+                <div><strong>Assignee:</strong> ${volunteerName}</div>
+                <div><strong>Completed:</strong> ${t.completed_at ? new Date(t.completed_at).toLocaleDateString() : 'N/A'}</div>
+              </div>
+          `;
+
+          if (proofs.length > 0) {
+            html += `<div style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">Evidence Logs:</div>`;
+            proofs.forEach((p: any) => {
+               let text = p.text.replace('[PROOF_OF_WORK]', '').trim();
+               const match = text.match(/\\[IMG:(.+?)\\]/);
+               let imgUrl = null;
+               if (match) {
+                 imgUrl = match[1];
+                 text = text.replace(match[0], '').trim();
+               }
+               html += `
+                 <div style="background: #ffffff; border-left: 3px solid #10b981; padding: 10px 12px; font-size: 13px; color: #334155; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                   <p style="margin: 0 0 6px 0;">${text}</p>
+                   <div style="font-size: 11px; color: #94a3b8;">Recorded: ${new Date(p.created_at).toLocaleString()}</div>
+                   ${imgUrl ? `<img src="${imgUrl}" alt="Proof" style="margin-top: 10px; max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid #e2e8f0; display: block;" />` : ''}
+                 </div>
+               `;
+            });
+          } else {
+            html += `<p style="font-size: 13px; color: #94a3b8; font-style: italic; margin: 0;">No proof evidence attached to this task.</p>`;
+          }
+          html += `</div>`;
+        });
+      }
+
+      html += `
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">Sevasync AI Platform — Secure Operational Report</p>
+          </div>
+        </div>
+      `;
+
+      setReportData(html);
+    } catch (e) {
+      toastError('Failed to generate report');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  const handleSendToSuperAdmin = async () => {
+    if (!reportData) return;
+    setSendingReport(true);
+    try {
+      const adminRes = await fetch('/api/admins');
+      const adminData = await adminRes.json();
+      const superAdmin = adminData.admins?.find((a: any) => a.role === 'super-admin');
+      
+      if (!superAdmin) throw new Error('Super Admin not found.');
+
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_id: superAdmin.id,
+          text: `[AI_REPORT] ${reportData}`,
+          task_id: null
+        })
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      success('Report Sent ✅', 'The report was sent directly to the Super Admin.');
+    } catch (e: any) {
+      toastError('Failed to send report', e.message);
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Monthly Operational Report</title>
+          <style>
+            body { margin: 0; padding: 20px; background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @media print {
+              body { background: white; padding: 0; }
+              div { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          ${reportData}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   };
 
   const handleViewTask = async (task: Task) => {
@@ -193,7 +393,8 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <>
+      <div className="animate-fade-in">
       <div className="page-header">
         <div className="page-header-top">
           <div>
@@ -203,6 +404,9 @@ export default function TasksPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button className="btn btn-secondary btn-sm" onClick={handleGenerateReport} disabled={generatingReport}>
+              {generatingReport ? '⟳ Generating...' : '📑 Generate AI Report'}
+            </button>
             <button className="btn btn-secondary btn-sm" id="tasks-refresh-btn" onClick={fetchData}>🔄 Refresh</button>
             <button className="btn btn-primary btn-sm" id="tasks-add-btn" onClick={() => setShowModal(true)}>+ New Task</button>
           </div>
@@ -244,14 +448,16 @@ export default function TasksPage() {
                   <span style={{ fontSize: '0.9rem' }}>{col.emoji}</span>
                   <span className="kanban-col-title" style={{ color: col.color }}>{col.label}</span>
                 </div>
-                <span style={{ background: `${col.color}20`, color: col.color, fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
-                  {getColTasks(col.id).length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span style={{ background: `${col.color}20`, color: col.color, fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
+                    {getColTasks(col.id).length}
+                  </span>
+                </div>
               </div>
 
               {getColTasks(col.id).map(task => (
                 <TaskCard key={task.id} task={task} onDragStart={() => setDragging(task.id)}
-                  onMove={(status) => moveTask(task.id, status)} onView={() => handleViewTask(task)} colOptions={COLS} />
+                  onMove={(status) => moveTask(task.id, status)} onView={() => handleViewTask(task)} onDelete={handleDeleteTask} colOptions={COLS} />
               ))}
 
               {getColTasks(col.id).length === 0 && (
@@ -263,6 +469,7 @@ export default function TasksPage() {
           ))}
         </div>
       )}
+      </div>
 
       {/* Create Task Modal */}
       {showModal && (
@@ -340,7 +547,7 @@ export default function TasksPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
           onClick={e => { if (e.target === e.currentTarget) setViewTask(null); }}
         >
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 500, padding: 24 }}>
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 500, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
               <h2 className="h4" style={{ margin: 0 }}>Review Task</h2>
               <button className="btn btn-ghost btn-sm" onClick={() => setViewTask(null)}>✕</button>
@@ -423,15 +630,45 @@ export default function TasksPage() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* AI Report Modal */}
+      {reportData && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={e => { if (e.target === e.currentTarget) setReportData(null); }}
+        >
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: 700, padding: 24, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+              <h2 className="h4" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                🤖 AI Task Report
+              </h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => setReportData(null)}>✕</button>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', background: '#e2e8f0', borderRadius: 'var(--radius-sm)', padding: 16, marginBottom: 16, border: '1px solid var(--bg-border)' }}>
+              <div dangerouslySetInnerHTML={{ __html: reportData }} />
+            </div>
+
+            <div className="flex gap-3">
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handlePrint}>
+                📄 Download as PDF
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSendToSuperAdmin} disabled={sendingReport}>
+                {sendingReport ? '⟳ Sending...' : '📨 Send to Super Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-function TaskCard({ task, onDragStart, onMove, onView, colOptions }: {
+function TaskCard({ task, onDragStart, onMove, onView, onDelete, colOptions }: {
   task: Task;
   onDragStart: () => void;
   onMove: (s: string) => void;
   onView: () => void;
+  onDelete: (id: string) => void;
   colOptions: typeof COLS;
 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -448,11 +685,17 @@ function TaskCard({ task, onDragStart, onMove, onView, colOptions }: {
       {showMenu && (
         <div style={{ position: 'absolute', right: 8, top: 28, background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: 'var(--radius-sm)', padding: '4px 0', zIndex: 10, minWidth: 140 }}>
           {colOptions.filter(c => c.id !== task.status).map(c => (
-            <button key={c.id} onClick={() => { onMove(c.id); setShowMenu(false); }}
+            <button key={c.id} onClick={(e) => { e.stopPropagation(); onMove(c.id); setShowMenu(false); }}
               style={{ display: 'block', width: '100%', padding: '7px 14px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left' }}>
               Move to {c.label}
             </button>
           ))}
+          {task.status === 'completed' && (
+            <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); setShowMenu(false); }}
+              style={{ display: 'block', width: '100%', padding: '7px 14px', background: 'none', border: 'none', color: 'var(--critical)', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left', borderTop: '1px solid var(--bg-border)' }}>
+              Delete Task
+            </button>
+          )}
         </div>
       )}
       <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 6, lineHeight: 1.4 }}>{task.title}</div>
