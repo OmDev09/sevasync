@@ -106,7 +106,15 @@ const roles = [
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [showAppModal, setShowAppModal] = useState(false);
+  const [joinType, setJoinType] = useState<'volunteer' | 'admin' | null>(null);
+  const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const { theme, toggleTheme, setTheme } = useTheme();
+
+  const handleJoinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormStatus('submitting');
+    setTimeout(() => setFormStatus('success'), 1500);
+  };
 
   useEffect(() => {
     // Default the landing page to light theme IF no theme is explicitly set yet locally
@@ -464,6 +472,96 @@ export default function LandingPage() {
               Launch Platform →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* JOIN US FORMS */}
+      <section id="join-us" style={{ padding: '80px 0', background: 'var(--bg-base)', borderTop: '1px solid var(--bg-border)' }}>
+        <div className="container" style={{ maxWidth: 800 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <h2 className="font-display" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 800, marginBottom: 16 }}>Want to make a difference?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.0625rem' }}>Apply to join our network. We are actively looking for dedicated individuals and organizations.</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 40, flexWrap: 'wrap' }}>
+            <button 
+              className={`btn ${joinType === 'volunteer' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => { setJoinType('volunteer'); setFormStatus('idle'); }}
+              style={{ padding: '12px 24px', fontSize: '1rem', minWidth: 220 }}
+            >
+              🙋 Want to be a Volunteer
+            </button>
+            <button 
+              className={`btn ${joinType === 'admin' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => { setJoinType('admin'); setFormStatus('idle'); }}
+              style={{ padding: '12px 24px', fontSize: '1rem', minWidth: 220 }}
+            >
+              🛠️ Want to be an Admin
+            </button>
+          </div>
+
+          {joinType && (
+            <div className="glass-card animate-fade-in" style={{ padding: '40px', borderRadius: 'var(--radius-xl)' }}>
+              {formStatus === 'success' ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: 16 }}>✅</div>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 8 }}>Application Received!</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>Thank you for your interest in Sevasync AI. Our team will review your details and contact you shortly.</p>
+                  <button className="btn btn-secondary" style={{ marginTop: 24 }} onClick={() => setJoinType(null)}>Close</button>
+                </div>
+              ) : (
+                <form onSubmit={handleJoinSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 8, borderBottom: '1px solid var(--bg-border)', paddingBottom: 16 }}>
+                    {joinType === 'volunteer' ? 'Volunteer Application' : 'Admin Application'}
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Full Name *</label>
+                      <input type="text" className="form-input" required placeholder="John Doe" />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Email Address *</label>
+                      <input type="email" className="form-input" required placeholder="john@example.com" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Phone Number *</label>
+                    <input type="tel" className="form-input" required placeholder="+1 (555) 000-0000" />
+                  </div>
+
+                  {joinType === 'volunteer' ? (
+                    <>
+                      <div>
+                        <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Location / City *</label>
+                        <input type="text" className="form-input" required placeholder="Where are you located?" />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Primary Skills / Experience *</label>
+                        <input type="text" className="form-input" required placeholder="e.g. Medical Training, Heavy Duty Driving, Logistics" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Organization / NGO Name *</label>
+                        <input type="text" className="form-input" required placeholder="Enter your organization name" />
+                      </div>
+                      <div>
+                        <label className="form-label" style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>Why do you want to be an Admin? *</label>
+                        <textarea className="form-input" required rows={3} placeholder="Briefly describe your use case and community impact goals..." />
+                      </div>
+                    </>
+                  )}
+
+                  <button type="submit" className="btn btn-primary" disabled={formStatus === 'submitting'} style={{ marginTop: 16, padding: '14px', fontSize: '1.0625rem', fontWeight: 700 }}>
+                    {formStatus === 'submitting' ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
