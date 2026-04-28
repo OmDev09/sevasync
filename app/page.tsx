@@ -605,7 +605,7 @@ export default function LandingPage() {
               </p>
               
               <a
-                href="https://github.com/Premdev23/sevasync-volunteer-app/releases/download/v1.0/SevaSync-Volunteer-v1.apk"
+                href="https://github.com/Premdev23/sevasync-volunteer-app/releases/download/v1.0/SevaSync-Volnteer-v1.apk"
                 className="btn btn-primary"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, width: '100%', padding: '16px', fontSize: '1.0625rem', fontWeight: 700, boxShadow: 'var(--shadow-md)' }}
               >
